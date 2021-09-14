@@ -4,12 +4,14 @@
 #	> a text based game inspired by War Games 
 
 
-from random import randint
+from random import randint, choice
+from typing import Collection
 import bext
 import pyinputplus
 import sys
 import time
 import math
+import a_star
 
 
 # BEXT REQUIREMENTS, for printing to the screen
@@ -17,11 +19,13 @@ WIDTH, HEIGHT = bext.size()
 #	for windows term width (prevents printing a newline when reaching the end of terminal)
 WIDTH -= 1
 REFRESH_RATE = 0.02
+COLOURS = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
 
 
 # SAVE THE WORLD MAP AS WORLD_MAP
 with open('WORLD_MAP.txt', 'r') as map:
 	WORLD_MAP = map.read()
+WORLD_MAP_GRAPH = WORLD_MAP.splitlines()
 
 def print_map(COLOUR: str, SPEED: float):
 	X = 0
@@ -56,7 +60,7 @@ def clear_lines(Y_START, Y_END):
 # DRAWS A CHARACTER AT A SPECIFIC LOCATION, Requires X,Y coordinates, a CHAR to print
 # Optional colour
 def draw_char(NUKE_LOCATION_X, NUKE_LOCATION_Y, CHAR: str, COLOUR='RED'):
-		bext.goto(NUKE_LOCATION_X, NUKE_LOCATION_Y)
+		bext.goto(round(NUKE_LOCATION_X), round(NUKE_LOCATION_Y))
 		bext.fg(COLOUR)
 		print(f'{CHAR}', end='')
 		sys.stdout.flush()
@@ -72,7 +76,7 @@ def get_original_character(x,y):
 def get_distance(x1, y1, x2 ,y2):
 	return math.hypot(x2-x1, y2-y1)
 
-def launch_ICBM(STRIKE_X, STRIKE_Y, START_X=40, START_Y=17):
+def launch_ICBM_gentle(STRIKE_X, STRIKE_Y, START_X=40, START_Y=17):
 	while (START_X, START_Y) != (STRIKE_X, STRIKE_Y):
 
 		draw_char(START_X, START_Y, 'X', COLOUR='PURPLE')
@@ -98,6 +102,72 @@ def launch_ICBM(STRIKE_X, STRIKE_Y, START_X=40, START_Y=17):
 		time.sleep(REFRESH_RATE)
 	draw_char(STRIKE_X, STRIKE_Y, '🌞')
 
+def launch_ICBM_miko():
+		START_X, START_Y = (0, 0)
+		STRIKE_X, STRIKE_Y = (80, 23)
+
+		y_height = abs(STRIKE_X - START_X)
+		x_height = abs(STRIKE_Y - START_Y)
+
+		if y_height > x_height:
+			x_delta = x_height / y_height
+			y_delta = 1
+			for i in range(y_height):
+				draw_char(START_X+x_delta, START_Y+y_delta, '🌞', 'PURPLE')
+				time.sleep(0.2)
+				START_X += x_delta
+				START_Y += y_delta
+		elif x_height > y_height:
+			x_delta = 1
+			y_delta = y_height / x_height
+			for i in range(x_height):
+				draw_char(START_X+x_delta, START_Y+y_delta, '🌞', 'PURPLE')
+				time.sleep(0.2)
+				START_X += x_delta
+				START_Y += y_delta
+
+def launch_ICBM_shortestPath(START_X, START_Y, STRIKE_X, STRIKE_Y):
+	shortest_path = a_star.getShortestPath(
+		WORLD_MAP_GRAPH, [START_X, START_Y], [STRIKE_X, STRIKE_Y])
+	for coordinate in shortest_path:
+		x, y = coordinate
+		draw_char(x, y, 'X', COLOUR='PURPLE')
+		time.sleep(0.02)
+
+def launch_ICBM_diag(START_X, START_Y, STRIKE_X, STRIKE_Y, COL='PURPLE', ICON='🌞'):
+	# to prevent divide by 0 errors when calculating slope:
+	if STRIKE_X == START_X:
+		STRIKE_X += 1
+	elif STRIKE_Y == STRIKE_Y:
+		STRIKE_Y += 1
+	# Slope formula y2-y1 / x2-x1
+	slope = (STRIKE_Y - START_Y) / (STRIKE_X - START_X)
+	# if the destination is to the right of the start/launch site
+	if STRIKE_X > START_X:
+		for x in range(START_X, STRIKE_X+1):
+			draw_char(x, START_Y, ICON, COLOUR=COL)
+			START_Y += slope
+			time.sleep(REFRESH_RATE)
+	# if the destination is to the left
+	elif STRIKE_X < START_X:
+		for x in range(START_X-STRIKE_X+1):
+			draw_char(START_X-x, START_Y, ICON, COLOUR=COL)
+			START_Y -= slope
+			time.sleep(REFRESH_RATE)
+
+
+	# TODO: dict of each country: 
+		# Each country has a unique pathfinding algo
+		# each country is assigned a colour
+		# each contry has a payload (area of effect)
+		# each country has a unique number of missiles
+		# some countries have nuclear submarines
+		# you can only view your own submarine and missile base locations
+		# have to guess where the other countries are
+		# friendly countries appear coloured in
+		# implemnent a DEFCON warning system
+		# the DEFCON system will affect other countries Hostility
+
 
 # MAIN GAME LOOP
 def main():
@@ -108,30 +178,23 @@ def main():
 
 	# CLear terminal 
 	bext.clear()
-
-
 	# PRINT THE WORLD_MAP
-	print_map('GREEN', 0.00002)
+	print_map('GREEN', 0.0002)
+
+	LAUNCH_LOCATIONS = [
+		(42,14),()
+	]
 
 	# MAIN LOOP AFTER MAP IS PRINTED
-
 	while True:
-		# STRIKE_X, STRIKE_Y = ask_for_coordinates()
+		START_X, START_Y = (randint(10,150), randint(3,44))
+		STRIKE_X, STRIKE_Y = (randint(10, 150), randint(3, 44))
 
-		# X_DISTANCE = range(20, 60)
-		# prev_character = ' '
-		# for x in X_DISTANCE:
-		# 	draw_char(x-1, 15, prev_character, COLOUR='GREEN')
-		# 	prev_character = get_original_character(x, 15)
-		# 	draw_char(x, 15, '🐲', COLOUR='PURPLE')
-		# 	time.sleep(0.02)
+		launch_ICBM_diag(START_X, START_Y, STRIKE_X, STRIKE_Y, COL=choice(COLOURS), ICON='X')
+		print_map('GREEN', 0.000001)
 
-		START_X, START_Y = (40, 14)
-
-		for i in range(20):
-			launch_ICBM(randint(1,100), randint(2,43))
-		break
 		
+
 
 
 
