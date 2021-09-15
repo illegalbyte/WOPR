@@ -187,7 +187,8 @@ class missiles():
 			draw.draw_char(x, y, 'X', COLOUR='PURPLE')
 			time.sleep(0.02)
 
-
+	# launches the missiles in an angled diagonal line
+	# TODO: add a wind effect to randomise missile paths
 	def ICBM_diag(START_X, START_Y, STRIKE_X, STRIKE_Y, COL='PURPLE', ICON='🌞'):
 		# to prevent divide by 0 errors when calculating slope:
 		if STRIKE_X == START_X:
@@ -216,6 +217,13 @@ class missiles():
 
 		draw.draw_char(STRIKE_X, STRIKE_Y-1, '🌞')
 
+	def simultanious_launch(number_of_launches):
+		launch_coords = [] # list of tuples (x, y)
+		while number_of_launches > 0: 
+			launch_coords.append(draw.ask_for_coordinates())
+			number_of_launches -= 1
+		
+		return launch_coords
 
 
 	# TODO: get this to fix diag algo so it properly prints vertical firing paths (ie iterates over distance, not the difference of the x coordinates)
@@ -282,19 +290,12 @@ def main():
 		STRIKE_X, STRIKE_Y = draw.ask_for_coordinates()
 		START_X, START_Y = washington.xy
 
-		# if washington.missiles > 0:
-		missiles.ICBM_diag(START_X, START_Y, STRIKE_X, STRIKE_Y, COL='PURPLE', ICON='☀︎')
-		os.system("say impact")
-		draw.draw_fallout(STRIKE_X, STRIKE_Y, RADIUS=5)
-		washington.missiles -= 1
-		# else:
-		'''
-			bext.goto(2, 49)
-			bext.bg('RED')
-			bext.fg('BLACK')
-			print(f'ERROR: SILO [Washington] EMPTY')
-		'''	
 
+		launches = missiles.simultanious_launch(3)
+
+		for xy in launches:
+			x, y = xy
+			missiles.ICBM_diag(START_X, START_Y, x, y)
 		
 
 
