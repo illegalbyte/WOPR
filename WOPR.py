@@ -34,13 +34,21 @@ import a_star
 WIDTH, HEIGHT = bext.size()
 #	for windows term width (prevents printing a newline when reaching the end of terminal)
 WIDTH -= 1
-REFRESH_RATE = 0.02
+REFRESH_RATE = 0.002
 COLOURS = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
 
+console_prompts = []
+
 # READ THE WORLD MAP AND STORE IN CONSTANT: WORLD_MAP
+from pprint import pprint as pp
 with open('WORLD_MAP.txt', 'r') as map:
 	WORLD_MAP = map.read()
 WORLD_MAP_GRAPH = WORLD_MAP.splitlines()
+
+# write to file
+def logfile(text, file):
+	with open(file, 'a') as f:
+		f.write(f'\n{text}')
 
 # prints the map
 def print_map(COLOUR: str, SPEED: float):
@@ -63,14 +71,21 @@ class draw():
 
 	# DRAWS A CHARACTER AT A SPECIFIC LOCATION
 	@staticmethod
-	def draw_char(NUKE_LOCATION_X, NUKE_LOCATION_Y, CHAR: str, COLOUR='RED'):
-			bext.goto(round(NUKE_LOCATION_X), round(NUKE_LOCATION_Y))
+	def draw_char(X, Y, CHAR: str, COLOUR='RED'):
+			bext.goto(round(X), round(Y))
 			bext.fg(COLOUR)
 			print(f'{CHAR}', end='')
 			sys.stdout.flush()
 
-	# DRAWS RADIATION MARKER # TODO: implement drawing a circle	around x,y
-	def draw_fallout(STRIKE_X, STRIKE_Y, RADIUS=1):
+	@staticmethod
+	def draw_targets(regions: dict):
+		for region in regions.values():
+			for country, target in region.items():
+				x, y = target
+				draw.draw_char(x, y, r'{X}', COLOUR='WHITE')
+
+	# DRAWS RADIATION MARKER
+	def draw_fallout(STRIKE_X, STRIKE_Y, RADIUS=1, SPEED=0.003):
 		# https://www.mathopenref.com/coordcirclealgorithm.html
 			while RADIUS != 0:
 				theta = 0
@@ -85,11 +100,9 @@ class draw():
 					if y > HEIGHT:
 						continue
 					draw.draw_char(x, y, 'X', COLOUR='PURPLE')
+					time.sleep(SPEED)
 					theta += step
 				RADIUS -=1				
-
-
-
 
 	# prints dialogue at the bottom which asks for coordinates and returns a tuple of the (x, y)
 	def ask_for_coordinates():
@@ -100,6 +113,21 @@ class draw():
 		Y_COORD = pyinputplus.inputInt('ENTER Y LOCTAION FOR FIRST STRIKE > ', min=0, max=45)
 		draw.clear_lines(50, 56)
 		return (X_COORD, Y_COORD)
+
+	def console(text: str):
+		bext.fg('RED')
+		# ensures console the prompts don't print past the height of terminal
+		if len(console_prompts) > 9:
+			console_prompts.pop(0)
+		console_prompts.append(text)
+		# for each 
+		draw.clear_lines(50, 60)
+		for i, output in enumerate(console_prompts):
+			bext.goto(2, 50+i)
+			print(f">> {output}")
+		bext.fg('reset')
+		sys.stdout.flush()
+
 
 	# CLEARES A RANGE OF LINES, USED FOR TEXT ENTRY AT BOTTOM OF SCREEN 
 	def clear_lines(Y_START, Y_END):
@@ -125,7 +153,7 @@ class missiles():
 		return math.hypot(x2-x1, y2-y1)
 
 	# this path algo launches a missile in a line and then when it is at a ~40° angle it will move diagonally towards target
-	def launch_ICBM_gentle(STRIKE_X, STRIKE_Y, START_X=40, START_Y=17, ICON='X', COLOUR='PURPLE'):
+	def ICBM_gentle(STRIKE_X, STRIKE_Y, START_X=40, START_Y=17, ICON='X', COLOUR='PURPLE'):
 		while (START_X, START_Y) != (STRIKE_X, STRIKE_Y):
 
 			draw.draw_char(START_X, START_Y, ICON, COLOUR=COLOUR)
@@ -153,7 +181,7 @@ class missiles():
 			time.sleep(REFRESH_RATE)
 
 	# this path algo is incomplete
-	def launch_ICBM_miko():
+	def ICBM_miko():
 			START_X, START_Y = (0, 0)
 			STRIKE_X, STRIKE_Y = (80, 23)
 
@@ -189,7 +217,7 @@ class missiles():
 
 	# launches the missiles in an angled diagonal line
 	# TODO: add a wind effect to randomise missile paths
-	def ICBM_diag(START_X, START_Y, STRIKE_X, STRIKE_Y, COL='PURPLE', ICON='🌞'):
+	def ICBM_diag(START_X, START_Y, STRIKE_X, STRIKE_Y, COL='PURPLE', ICON='🌞', REFRESH_RATE=REFRESH_RATE):
 		# to prevent divide by 0 errors when calculating slope:
 		if STRIKE_X == START_X:
 			STRIKE_X += 1
@@ -200,20 +228,35 @@ class missiles():
 
 		# if the horizontal distance is < 4, use the gentle algo instead
 		if (abs(START_X - STRIKE_X) < 4):
-			missiles.launch_ICBM_gentle(STRIKE_X, STRIKE_Y, START_X, START_Y)
+			missiles.ICBM_gentle(STRIKE_X, STRIKE_Y, START_X, START_Y)
 		else:
 			# if the destination is to the right of the start/launch site
 			if STRIKE_X > START_X:
+				# xy of prev character for omitting the missile paths
+				prev_xy = []
 				for x in range(START_X, STRIKE_X):
+					# stores original x,y and the character originally on the map at that x,y
+					prev_xy = [x, START_Y]
+					prev_char = draw.get_original_character(prev_xy[0], round(prev_xy[1]))
+					# print the missile location
 					draw.draw_char(x, START_Y, ICON, COLOUR=COL)
 					START_Y += slope
 					time.sleep(REFRESH_RATE)
+					# draw the previous character to clear the missile path
+					draw.draw_char(prev_xy[0], prev_xy[1], prev_char, COLOUR='GREEN')
 			# if the destination is to the left
 			elif STRIKE_X < START_X:
+				prev_xy = []
 				for x in range(START_X-STRIKE_X):
+					# stores original x,y and the character originally on the map at that x,y
+					prev_xy = [START_X-x, START_Y]
+					prev_char = draw.get_original_character(prev_xy[0], round(prev_xy[1]))
+					# draw the new missile location
 					draw.draw_char(START_X-x, START_Y, ICON, COLOUR=COL)
 					START_Y -= slope
 					time.sleep(REFRESH_RATE)
+					# draw the previous character to clear the missile path
+					draw.draw_char(prev_xy[0], prev_xy[1], prev_char, COLOUR='GREEN')
 
 		draw.draw_char(STRIKE_X, STRIKE_Y-1, '🌞')
 
@@ -252,23 +295,83 @@ class missiles():
 				START_Y -= slope
 				time.sleep(REFRESH_RATE)
 
-class silo:
-	def __init__(self, xy: tuple, missiles: int, status: bool, country: str):
+class weapons:
+	def __init__(self, xy: tuple, missiles: int, status: bool, country: str, base_icon='@'):
 		self.xy = xy
 		self.missiles = missiles
 		self.status = status
 		self.country = country
+		self.base_icon = base_icon
 
-LAUNCH_LOCATIONS = {
-	'USA': {
-		'SILOS': [(31,13), (40,15)]
-	},
-	'AUS': {
-		'SILOS': [(132,28), (127,31)]
-	}
-}
+	def draw_base(self):
+		x, y = self.xy
+		if self.status == True:
+			color = 'WHITE'
+		else:
+			color = 'RED'
+		draw.draw_char(x, y, self.base_icon, COLOUR=color)
+
+class silo(weapons):
+	pass
+
+class submarine(silo):
+	def move(self, x2, y2):
+		# move the submarine
+		# check that the next path is empty
+		if draw.get_original_character(x2, y2) != ' ' \
+		or draw.get_original_character(x2-1, y2-1) != ' ' \
+		or draw.get_original_character(x2+1, y2+1) != ' ' \
+		or draw.get_original_character(x2-1, y2+2) != ' ' \
+		or draw.get_original_character(x2+1, y2-2) != ' ': 
+			draw.console(f'SUBMARINE COLISION AT X: {x2} Y: {y2}')
+		else:
+			# clear current position (draw the original map tile)
+			draw.draw_char(self.xy[0], self.xy[1], CHAR=draw.get_original_character(self.xy[0],self.xy[1]))
+			# move the submarine
+			self.xy = (x2, y2)
+			# draw at new position:
+			self.draw_base()
+			return self.xy
+
+class defcon():
+	
+
+	defcon = [0,1,2,3,4,5]
+	
+	defcon_status = defcon[5]
+
+	def display(defcon_status):
+		box =["#################", \
+			  "#               #", \
+			  "#               #", \
+			  "#               #", \
+			  "#               #", \
+			  "#               #", \
+			  "#################"]
+		# draw each line of the box
+		for y, line in enumerate(box):
+			draw.draw_char(170, y+2, line, COLOUR='YELLOW')
+
+			if defcon_status == 5:
+				draw.draw_char(175, 7, f'DEFCON {defcon.defcon_status}')
+			elif defcon_status == 4:
+				draw.draw_char(175, 6, f'DEFCON {defcon.defcon_status}')
+			elif defcon_status == 3:
+				draw.draw_char(175, 5, f'DEFCON {defcon.defcon_status}')
+			elif defcon_status == 2:
+				draw.draw_char(175, 4, f'DEFCON {defcon.defcon_status}')
+			elif defcon_status == 1:
+				draw.draw_char(175, 3, f'DEFCON {defcon.defcon_status}')
+
+
+
 
 washington = silo((31,13), 10, True, country='USA')
+berlin = silo((94,9), 10, True, country='Germany')
+arch1 = submarine((100,37), missiles=2, status=True, country='USA', base_icon='🛥')
+
+
+
 
 
 # MAIN GAME LOOP
@@ -278,26 +381,90 @@ def main():
 		print("TERMINAL WIDTH MUST BE > 170 characters")
 		sys.exit()
 
-	# CLear terminal 
-	bext.clear()
-	# PRINT THE WORLD_MAP
-	print_map('GREEN', 0.0002)
 
+	# dict which contains the regions of each 
+	regions = {
+		'EUROPE': {
+			'GERMANY': (91, 10),
+			'FRANCE': (81, 12),
+			'MOSCOW': (99, 9)
+		},
+		'AMERICAS': {
+			'COLOMBIA': (49, 23),
+			'USA': (34, 14)
+		},
+		'PACIFIC': {
+			'AUSTRALIA': (132,30),
+			'CHINA': (121, 15)
+		},
+		'SOUTH-ASIA': {
+			'INDIA': (110,20),
+			'PAKISTAN': (107,17)
+		}
+	}
+	
+	# sample code which explains how to query the regions dict for a target
+	# for region in regions.values():
+	# 	for country, target in region.items():
+	# 		(f'{country} >> {target}')
+
+	
 
 	# MAIN LOOP AFTER MAP IS PRINTED
 	while True:
+		console_prompts = []
+		# CLear terminal 
+		bext.clear()
+		# PRINT THE WORLD_MAP
+		print_map('GREEN', 0.000002)
+		# draw silos on top of map
+		draw.draw_targets(regions)
 
-		STRIKE_X, STRIKE_Y = draw.ask_for_coordinates()
-		START_X, START_Y = washington.xy
 
-
-		launches = missiles.simultanious_launch(3)
-
-		for xy in launches:
-			x, y = xy
-			missiles.ICBM_diag(START_X, START_Y, x, y)
+		# add targets to a list
+		targets = []
+		for region in regions.values():
+			for country, target in region.items():
+				targets.append(target)
 		
+		defcon.defcon_status = 5
+		# LOOP: until all targets are eliminated
+		while len(targets) != 0:	
 
+			# print the defcon status before the shot
+			defcon.display(defcon.defcon_status)
+
+			# the counrty which launches an icbm
+			start = choice(targets)
+			# removes the launch country from the list of potential targets
+			targets.remove(start)
+			# randomly choses the target country
+			strike = targets.pop(randint(0, len(targets)-1))
+			# add the start country as a potential target again
+			targets.append(start)
+
+			x1,y1 = start
+			x2,y2 = strike
+
+			missiles.ICBM_diag(x1,y1,x2,y2, ICON='@', REFRESH_RATE=0.09)
+			draw.draw_fallout(x2,y2,2, SPEED=0.0009)
+			defcon.defcon_status -= 1
+			defcon.display(defcon.defcon_status)
+
+
+			# print remaining countries by name: 
+			remaining_countries = []
+			for region in regions.values():
+				for country, target in region.items():
+					if target in targets:
+						remaining_countries.append(country)
+			draw.console(f"REMAINING COUNTRIES >> {' '.join(remaining_countries)}")
+
+			time.sleep(1)
+			if len(targets) == 1:
+				draw.console(f' > WINNER: {remaining_countries[0]}')
+				time.sleep(3)
+				break
 
 
 
