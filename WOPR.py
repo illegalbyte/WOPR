@@ -448,7 +448,9 @@ def main():
 
 			missiles.ICBM_diag(x1,y1,x2,y2, ICON='@', REFRESH_RATE=0.09)
 			draw.draw_fallout(x2,y2,2, SPEED=0.0009)
-			defcon.defcon_status -= 1
+			
+			if defcon.defcon_status != 1:
+				defcon.defcon_status -= 1
 			defcon.display(defcon.defcon_status)
 
 
