@@ -13,6 +13,7 @@ import sys
 import time
 import math
 import a_star
+import game
 
 
 
@@ -32,10 +33,32 @@ import a_star
 
 # BEXT REQUIREMENTS, for printing to the screen
 WIDTH, HEIGHT = bext.size()
-#	for windows term width (prevents printing a newline when reaching the end of terminal)
+#	for Windows (OS) term width (prevents printing a newline when reaching the end of terminal)
 WIDTH -= 1
+# the speed of animations per second
 REFRESH_RATE = 0.002
+# colours which can be used by BEXT
 COLOURS = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
+# silo locations, organised by regions
+regions = {
+    'EUROPE': {
+        'GERMANY': (91, 10),
+		'FRANCE': (81, 12),
+		'RUSSIA': (99, 9)
+    },
+    'AMERICAS': {
+        'COLOMBIA': (49, 23),
+		'USA': (34, 14)
+    },
+    'PACIFIC': {
+        'AUSTRALIA': (132, 30),
+		'CHINA': (121, 15)
+    },
+    'SOUTH-ASIA': {
+        'INDIA': (110, 20),
+		'PAKISTAN': (107, 17)
+    }
+}
 
 console_prompts = []
 
@@ -114,19 +137,53 @@ class draw():
 		draw.clear_lines(50, 56)
 		return (X_COORD, Y_COORD)
 
-	def console(text: str):
+	# runs the bottom console
+	def console(input):
 		bext.fg('RED')
 		# ensures console the prompts don't print past the height of terminal
 		if len(console_prompts) > 9:
 			console_prompts.pop(0)
-		console_prompts.append(text)
+		console_prompts.append(input)
 		# for each 
 		draw.clear_lines(50, 60)
 		for i, output in enumerate(console_prompts):
 			bext.goto(2, 50+i)
-			print(f">> {output}")
+			if type(output) == str:
+				print(f">> {output}")
+			else:
+				output
 		bext.fg('reset')
 		sys.stdout.flush()
+
+	def player_list(allies:list, enemies:list, player:str):
+		pass
+		bext.fg('reset')
+		bext.goto(180,2)
+		print('##############')
+		bext.goto(180, 3)
+		print('#   ALLIES:  #')
+		for y, ally in enumerate(allies):
+			bext.goto(184,4+y)
+			bext.fg('PURPLE')
+			print(ally)
+			bext.fg('RESET')
+
+		bext.fg('reset')
+		bext.goto(195,2)
+		print('##############')
+		bext.goto(195, 3)
+		print('#   ENEMIES:  #')
+		for y, enemy in enumerate(enemies):
+			bext.goto(199, 4+y)
+			bext.fg('RED')
+			print(enemy)
+			bext.fg('RESET')
+
+		bext.goto(60,47)
+		bext.fg('yellow')
+		print(f"YOU ARE: {player}")
+		bext.fg('reset')
+
 
 
 	# CLEARES A RANGE OF LINES, USED FOR TEXT ENTRY AT BOTTOM OF SCREEN 
@@ -364,6 +421,146 @@ class defcon():
 				draw.draw_char(175, 3, f'DEFCON {defcon.defcon_status}')
 
 
+def simulations(scenario='autofire'):
+	if scenario == 'autofire':
+		# resets the console prompt buffer to be empty
+		global console_prompts
+		console_prompts = []
+
+		# draw silos on top of map
+		draw.draw_targets(regions)
+
+		# add targets to a list
+		targets = []
+		for region in regions.values():
+			for country, target in region.items():
+				targets.append(target)
+		
+		# set initial defcon to 5
+		defcon.defcon_status = 5
+		# LOOP: until all targets are eliminated
+		while len(targets) != 0:
+
+			# print the defcon status before the shot
+			defcon.display(defcon.defcon_status)
+
+			# the counrty which launches an icbm
+			start = choice(targets)
+			# removes the launch country from the list of potential targets
+			targets.remove(start)
+			# randomly choses the target country
+			strike = targets.pop(randint(0, len(targets)-1))
+			# add the start country as a potential target again
+			targets.append(start)
+
+			x1, y1 = start
+			x2, y2 = strike
+
+			missiles.ICBM_diag(x1, y1, x2, y2, ICON='@', REFRESH_RATE=0.09)
+			draw.draw_fallout(x2, y2, 2, SPEED=0.0009)
+
+			if defcon.defcon_status != 1:
+				defcon.defcon_status -= 1
+			defcon.display(defcon.defcon_status)
+
+			# print remaining countries by name:
+			remaining_countries = []
+			for region in regions.values():
+				for country, target in region.items():
+					if target in targets:
+						remaining_countries.append(country)
+			draw.console(f"REMAINING COUNTRIES >> {' '.join(remaining_countries)}")
+
+			time.sleep(1)
+			if len(targets) == 1:
+				draw.console(f' > WINNER: {remaining_countries[0]}')
+				time.sleep(3)
+				break
+
+			# sample code which explains how to query the regions dict for a target
+			# for region in regions.values():
+			# 	for country, target in region.items():
+			# 		(f'{country} >> {target}')
+
+	if scenario == 'interactive':
+		# create list of countries / players: 
+		unassigned_countries = []
+		for region in regions.values():
+			for country, location in region.items():
+				unassigned_countries.append(country)
+		
+		all_countries = unassigned_countries.copy()
+		
+		# ask player which country they want to be
+		bext.goto(0, 48)
+		player_country = pyinputplus.inputMenu(
+			unassigned_countries, "CHOOSE A COUNTRY:\n", numbered=True)
+
+		unassigned_countries.remove(player_country)
+		
+		allies = []
+		enemies = []
+
+		# set limit of allies: 
+		ally_limit = randint(2,5)
+		# set number of enemies
+		enemies_limit = len(all_countries) - ally_limit
+
+		# randomly assisgn allies and enemies
+		for country in unassigned_countries:
+			if len(allies) < ally_limit:
+				allies.append(country)
+			else:
+				enemies.append(country)
+
+		# draw the box of enemies and allies
+		draw.player_list(allies, enemies, player_country)
+
+		# draw ally bases 
+
+		for region in regions.values():
+			for country, location in region.items():
+				if country == player_country:
+					bext.fg('yellow')
+				elif country in enemies:
+					bext.fg('red')
+				elif country in allies:
+					bext.fg('purple')
+				bext.goto(location[0], location[1])
+				print('@')
+
+		# ask for first strike country
+		draw.clear_lines(48,HEIGHT)
+		bext.goto(0,48)
+		target = pyinputplus.inputMenu(enemies, "CHOSE A COUNTRY TO TARGET:\n", lettered=True)
+		
+		def move(choice=False):
+			start_x = 0
+			start_y = 0
+			strike_x = 0
+			strike_y = 0
+			
+			for region in regions.values():
+				for country, location in region.items():
+					if country == player_country:
+						start_x = location[0]
+						start_y = location[1]
+					elif country == target:
+						strike_x = location[0]
+						strike_y = location[1]
+			
+			missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.1, COL='YELLOW', ICON='>')
+			draw.draw_fallout(strike_x, strike_y, RADIUS=4)
+
+		turn = 1
+		
+
+		time.sleep(100)
+
+
+				
+
+
 
 
 washington = silo((31,13), 10, True, country='USA')
@@ -381,94 +578,15 @@ def main():
 		print("TERMINAL WIDTH MUST BE > 170 characters")
 		sys.exit()
 
-
-	# dict which contains the regions of each 
-	regions = {
-		'EUROPE': {
-			'GERMANY': (91, 10),
-			'FRANCE': (81, 12),
-			'MOSCOW': (99, 9)
-		},
-		'AMERICAS': {
-			'COLOMBIA': (49, 23),
-			'USA': (34, 14)
-		},
-		'PACIFIC': {
-			'AUSTRALIA': (132,30),
-			'CHINA': (121, 15)
-		},
-		'SOUTH-ASIA': {
-			'INDIA': (110,20),
-			'PAKISTAN': (107,17)
-		}
-	}
-	
-	# sample code which explains how to query the regions dict for a target
-	# for region in regions.values():
-	# 	for country, target in region.items():
-	# 		(f'{country} >> {target}')
-
-	
-
 	# MAIN LOOP AFTER MAP IS PRINTED
 	while True:
-		console_prompts = []
+		
 		# CLear terminal 
 		bext.clear()
 		# PRINT THE WORLD_MAP
 		print_map('GREEN', 0.000002)
-		# draw silos on top of map
-		draw.draw_targets(regions)
 
-
-		# add targets to a list
-		targets = []
-		for region in regions.values():
-			for country, target in region.items():
-				targets.append(target)
-		
-		defcon.defcon_status = 5
-		# LOOP: until all targets are eliminated
-		while len(targets) != 0:	
-
-			# print the defcon status before the shot
-			defcon.display(defcon.defcon_status)
-
-			# the counrty which launches an icbm
-			start = choice(targets)
-			# removes the launch country from the list of potential targets
-			targets.remove(start)
-			# randomly choses the target country
-			strike = targets.pop(randint(0, len(targets)-1))
-			# add the start country as a potential target again
-			targets.append(start)
-
-			x1,y1 = start
-			x2,y2 = strike
-
-			missiles.ICBM_diag(x1,y1,x2,y2, ICON='@', REFRESH_RATE=0.09)
-			draw.draw_fallout(x2,y2,2, SPEED=0.0009)
-			
-			if defcon.defcon_status != 1:
-				defcon.defcon_status -= 1
-			defcon.display(defcon.defcon_status)
-
-
-			# print remaining countries by name: 
-			remaining_countries = []
-			for region in regions.values():
-				for country, target in region.items():
-					if target in targets:
-						remaining_countries.append(country)
-			draw.console(f"REMAINING COUNTRIES >> {' '.join(remaining_countries)}")
-
-			time.sleep(1)
-			if len(targets) == 1:
-				draw.console(f' > WINNER: {remaining_countries[0]}')
-				time.sleep(3)
-				break
-
-
+		simulations(scenario='interactive')
 
 
 if __name__ == '__main__':
