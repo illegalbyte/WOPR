@@ -40,25 +40,56 @@ REFRESH_RATE = 0.002
 # colours which can be used by BEXT
 COLOURS = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
 # silo locations, organised by regions
-regions = {
-    'EUROPE': {
-        'GERMANY': (91, 10),
-		'FRANCE': (81, 12),
-		'RUSSIA': (99, 9)
-    },
-    'AMERICAS': {
-        'COLOMBIA': (49, 23),
-		'USA': (34, 14)
-    },
-    'PACIFIC': {
-        'AUSTRALIA': (132, 30),
-		'CHINA': (121, 15)
-    },
-    'SOUTH-ASIA': {
-        'INDIA': (110, 20),
-		'PAKISTAN': (107, 17)
-    }
+countries = {
+        'GERMANY': { 
+			'location': (91, 10), 
+			'status': True,
+			'region': 'EUROPE'
+			},
+        'FRANCE': { 
+            'location': (81, 12),
+			'status': True,
+			'region': 'EUROPE'
+			},
+        'RUSSIA': { 
+            'location': (99, 9),
+			'status': True,
+			'region': 'EUROPE'
+			},
+        'COLOMBIA': { 
+            'location': (49, 23),
+			'status': True,
+			'region': 'AMERICAS'
+			},
+        'USA': { 
+            'location': (34, 14),
+			'status': True,
+			'region': 'AMERICAS'
+			},
+        'CHINA': { 
+            'location': (121, 15),
+			'status': True,
+			'region': 'ASIA'
+			},
+		'INDIA': {
+            'location': (110, 20),
+			'status': True,
+			'region': 'ASIA'
+            },
+	    'PAKISTAN': {
+            'location': (107, 17),
+			'status': True,
+			'region': 'ASIA'
+        },
+		'AUSTRALIA': {
+            'location': (132, 30),
+			'status': True,
+			'region': 'PACIFIC'
+			}
 }
+for country in countries:
+	print(country)
+
 
 console_prompts = []
 
@@ -137,7 +168,7 @@ class draw():
 		draw.clear_lines(50, 56)
 		return (X_COORD, Y_COORD)
 
-	# runs the bottom console
+	# write to the bottom console
 	def console(input):
 		bext.fg('RED')
 		# ensures console the prompts don't print past the height of terminal
@@ -156,52 +187,79 @@ class draw():
 		sys.stdout.flush()
 
 	def player_list(allies:list, enemies:list, player:str):
-		pass
+		'''Shows a list of enemies and allies, as well as the player's country
+		Colour of country printed will change when it's status is False ie when it's destroyed'''
+		# clear the screen so that updated info can be displayed
+		draw.clear_to_edge(2, 30, 180)
+
+		'''Takes the list of allies, enemies, and the player's country
+		and displays a list of them to the right of the map'''
+		disabled_colour = 'yellow'
+
+		# print the list of allies
 		bext.fg('reset')
 		bext.goto(180,2)
 		print('##############')
 		bext.goto(180, 3)
 		print('#   ALLIES:  #')
 		for y, ally in enumerate(allies):
+			status = countries[ally]['status']
+			if status == True:
+				bext.fg('purple')
+			elif status == False:
+				bext.fg(disabled_colour)
 			bext.goto(184,4+y)
-			bext.fg('PURPLE')
 			print(ally)
 			bext.fg('RESET')
 
+		# print the list of enemies
 		bext.fg('reset')
 		bext.goto(195,2)
 		print('##############')
 		bext.goto(195, 3)
 		print('#   ENEMIES:  #')
 		for y, enemy in enumerate(enemies):
+			status = countries[enemy]['status']
+			if status == True:
+				bext.fg('RED')
+			elif status == False:
+				bext.fg(disabled_colour)
 			bext.goto(199, 4+y)
-			bext.fg('RED')
 			print(enemy)
 			bext.fg('RESET')
 
+		# prints the player's country at the bottom of the map
 		bext.goto(60,47)
-		bext.fg('yellow')
-		print(f"YOU ARE: {player}")
+		bext.fg('BLACK')
+		bext.bg('YELLOW')
+		print(f" YOU ARE: {player} ")
 		bext.fg('reset')
+		bext.bg('reset')
 
-
-
-	# CLEARES A RANGE OF LINES, USED FOR TEXT ENTRY AT BOTTOM OF SCREEN 
 	def clear_lines(Y_START, Y_END):
+		'''CLEARES A RANGE OF LINES, USED FOR TEXT ENTRY AT BOTTOM OF SCREEN'''
 		for y in range(Y_START, Y_END):
 			for x in range(WIDTH):
 				bext.goto(x, y)
 				print(' ', end='')
 
-	# For re-printing the previous character and keeping the map in tact
-	# takes an x,y and returns the original character from the original map
-	# assumes that WORLD_MAP variable has not changed from initial state
+	def clear_to_edge(y_start, y_end, x_start):
+		'''Clears lines from x to the end of the screen (ie the right edge)'''
+		for y in range(y_start, y_end):
+			for x in range(x_start, WIDTH):
+				bext.goto(x, y)
+				print(' ', end='')
+
 	def get_original_character(x,y):
+		'''For re-printing the previous character and keeping the map in tact
+		takes an x,y and returns the original character from the original map
+		assumes that WORLD_MAP variable has not changed from initial state'''
 		map_lines = WORLD_MAP.splitlines()
 		characters = list(map_lines[y])
 		return characters[x]
 
 class missiles():
+	'''A bunch of functions related to firing and drawing missiles'''
 	def __init__(self) -> None:
 		pass
 
@@ -263,7 +321,7 @@ class missiles():
 					START_Y += y_delta
 
 	# uses a shortest path breadth algorithm – should be used for obstacle avoidance 
-	# TODO: requires the map is in a nested list format, not a string 
+	# TODO: requires the map characters are in a 2D list format, not a string 
 	def ICBM_shortestPath(START_X, START_Y, STRIKE_X, STRIKE_Y):
 		shortest_path = a_star.getShortestPath(
 			WORLD_MAP_GRAPH, [START_X, START_Y], [STRIKE_X, STRIKE_Y])
@@ -421,7 +479,9 @@ class defcon():
 				draw.draw_char(175, 3, f'DEFCON {defcon.defcon_status}')
 
 
-def simulations(scenario='autofire'):
+def game(scenario='autofire'):
+	'''The main game functions, takes one parameter scenario, which determines
+	what game will be played'''
 	if scenario == 'autofire':
 		# resets the console prompt buffer to be empty
 		global console_prompts
@@ -483,79 +543,157 @@ def simulations(scenario='autofire'):
 			# 		(f'{country} >> {target}')
 
 	if scenario == 'interactive':
-		# create list of countries / players: 
-		unassigned_countries = []
-		for region in regions.values():
-			for country, location in region.items():
+		while True:
+			# CLear terminal
+			bext.clear()
+			# PRINT THE WORLD_MAP
+			print_map('GREEN', 0.000002)
+
+			# create list of countries / players: 
+			unassigned_countries = []
+
+			for country in countries:
+				# reset status of all countries:
+				countries[country]['status'] = True
 				unassigned_countries.append(country)
-		
-		all_countries = unassigned_countries.copy()
-		
-		# ask player which country they want to be
-		bext.goto(0, 48)
-		player_country = pyinputplus.inputMenu(
-			unassigned_countries, "CHOOSE A COUNTRY:\n", numbered=True)
-
-		unassigned_countries.remove(player_country)
-		
-		allies = []
-		enemies = []
-
-		# set limit of allies: 
-		ally_limit = randint(2,5)
-		# set number of enemies
-		enemies_limit = len(all_countries) - ally_limit
-
-		# randomly assisgn allies and enemies
-		for country in unassigned_countries:
-			if len(allies) < ally_limit:
-				allies.append(country)
-			else:
-				enemies.append(country)
-
-		# draw the box of enemies and allies
-		draw.player_list(allies, enemies, player_country)
-
-		# draw ally bases 
-
-		for region in regions.values():
-			for country, location in region.items():
-				if country == player_country:
-					bext.fg('yellow')
-				elif country in enemies:
-					bext.fg('red')
-				elif country in allies:
-					bext.fg('purple')
-				bext.goto(location[0], location[1])
-				print('@')
-
-		# ask for first strike country
-		draw.clear_lines(48,HEIGHT)
-		bext.goto(0,48)
-		target = pyinputplus.inputMenu(enemies, "CHOSE A COUNTRY TO TARGET:\n", lettered=True)
-		
-		def move(choice=False):
-			start_x = 0
-			start_y = 0
-			strike_x = 0
-			strike_y = 0
 			
-			for region in regions.values():
-				for country, location in region.items():
+			all_countries = unassigned_countries.copy()
+			
+			# ask player which country they want to be
+			bext.goto(0, 48)
+			player_country = pyinputplus.inputMenu(
+				unassigned_countries, "CHOOSE A COUNTRY:\n", numbered=True)
+
+			unassigned_countries.remove(player_country)
+			
+			allies = []
+			enemies = []
+
+			# set limit of allies: 
+			ally_limit = randint(2,5)
+			# set number of enemies
+			enemies_limit = len(all_countries) - ally_limit
+
+			# randomly assisgn allies and enemies
+			for country in unassigned_countries:
+				if len(allies) < ally_limit:
+					allies.append(country)
+				else:
+					enemies.append(country)
+
+			# make a copy the original allies and enemies
+			# so that it can be used in the draw.playerlist function
+			original_allies = allies.copy()
+			original_enemies = enemies.copy()
+
+			# display the box of enemies and allies
+			draw.player_list(allies, enemies, player_country)
+
+			# draw ally bases 
+			def draw_bases():
+				for country in countries:
 					if country == player_country:
-						start_x = location[0]
-						start_y = location[1]
-					elif country == target:
-						strike_x = location[0]
-						strike_y = location[1]
+						bext.fg('yellow')
+					elif country in enemies:
+						bext.fg('red')
+					elif country in allies:
+						bext.fg('white')
+					elif countries[country]['status'] == False:
+						bext.fg('blue')
+					bext.goto(countries[country]['location'][0],
+							countries[country]['location'][1])
+					print('@')
+
+			def playermove():
+				'''Ask the player what countries it should target'''
+				# clear bottom text area
+				draw.clear_lines(48, HEIGHT)
+				bext.goto(0, 48)
+
+				# if there is more than 1 enemy, ask the user which country to target
+				if len(enemies) > 1:
+					target = pyinputplus.inputMenu(enemies, "CHOSE A COUNTRY TO TARGET:\n", lettered=True)
+				else:
+					target = enemies[0]			
+
+				start_x = countries[player_country]['location'][0]
+				start_y = countries[player_country]['location'][1]
+				strike_x = countries[target]['location'][0]
+				strike_y = countries[target]['location'][1]
 			
-			missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.1, COL='YELLOW', ICON='>')
-			draw.draw_fallout(strike_x, strike_y, RADIUS=4)
+				missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
+				draw.draw_fallout(strike_x, strike_y, RADIUS=1)
 
-		turn = 1
-		
+				# remove country from list of targettable enemies
+				enemies.remove(target)
+				# change countries status to false
+				countries[target]['status'] = False
 
-		time.sleep(100)
+			def automove():
+				'''Randomly selects a country to fire at one of its enemies.'''
+				remaining_countries = enemies + allies 
+				# randomly assign which country is firing
+				start = choice(remaining_countries)
+				# ensure country doesn't fire at itself
+				remaining_countries.remove(start)
+				# set possible targets to a state's enemies only
+				if start in enemies:
+					possible_targets = allies
+					possible_targets.append(player_country)
+				elif start in allies:
+					possible_targets = enemies
+				target = choice(possible_targets)
+
+				# start (x,y) for missile base location
+				start_x = countries[start]['location'][0]
+				start_y = countries[start]['location'][1]
+				# strike (x,y) for missile's target location
+				strike_x = countries[target]['location'][0]
+				strike_y = countries[target]['location'][1]
+
+
+				if target in enemies:
+					enemies.remove(target)
+					countries[target]['status'] = False
+				elif target in allies:
+					allies.remove(target)
+					countries[target]['status'] = False
+				elif target == player_country:
+					countries[target]['status'] = False
+
+				missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
+				draw.draw_fallout(strike_x, strike_y, RADIUS=1)
+			
+			def base_message(text: str, country: str):
+				'''PRINTS A MESSAGE AT A SPECIFIC COUNRTY'S SILO LOCATION
+				Mainly used for printing 'You lose' at game end'''
+				bext.goto(countries[country]['location'][0],
+				          countries[country]['location'][1])
+				bext.bg('RED')
+				bext.fg('BLACK')
+				print(text)
+				bext.bg('reset')
+				bext.fg('reset')
+				time.sleep(10)
+				
+
+
+
+			turn = 1
+			while len(enemies) != 0 and (countries[player_country]['status'] == True):
+				draw_bases()
+				draw.player_list(original_allies, original_enemies, player_country)
+				if turn % 2 == 0 and countries[player_country]['status'] == True:
+					automove()
+				else:
+					playermove()
+				turn += 1
+				draw.player_list(original_allies, original_enemies, player_country)
+
+			if countries[player_country]['status'] == False:
+				base_message(f'YOU LOST IN {turn} TURNS, RESTARTING IN 10s', player_country)
+			else:
+				base_message(f'YOU WON IN {turn} TURNS, RESTARTING IN 10s', player_country)
 
 
 				
@@ -581,12 +719,7 @@ def main():
 	# MAIN LOOP AFTER MAP IS PRINTED
 	while True:
 		
-		# CLear terminal 
-		bext.clear()
-		# PRINT THE WORLD_MAP
-		print_map('GREEN', 0.000002)
-
-		simulations(scenario='interactive')
+		game(scenario='interactive')
 
 
 if __name__ == '__main__':
