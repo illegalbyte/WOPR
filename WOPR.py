@@ -87,9 +87,6 @@ countries = {
 			'region': 'PACIFIC'
 			}
 }
-for country in countries:
-	print(country)
-
 
 console_prompts = []
 
@@ -372,6 +369,7 @@ class missiles():
 					time.sleep(REFRESH_RATE)
 					# draw the previous character to clear the missile path
 					draw.draw_char(prev_xy[0], prev_xy[1], prev_char, COLOUR='GREEN')
+			
 
 		draw.draw_char(STRIKE_X, STRIKE_Y-1, 'ðŸŒž')
 
@@ -663,6 +661,7 @@ def game(scenario='autofire'):
 
 				missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
 				draw.draw_fallout(strike_x, strike_y, RADIUS=1)
+				draw_bases()
 			
 			def base_message(text: str, country: str):
 				'''PRINTS A MESSAGE AT A SPECIFIC COUNRTY'S SILO LOCATION
@@ -713,7 +712,7 @@ arch1 = submarine((100,37), missiles=2, status=True, country='USA', base_icon='ð
 def main():
 	# Ensure enough space to print the entire map
 	if WIDTH < 170 or HEIGHT < 60:
-		print("TERMINAL WIDTH MUST BE > 170 characters")
+		print(f"TERMINAL WIDTH MUST BE > 170 characters wide and > 60 characters tall\nYour terminal is only: {WIDTH}px wide by {HEIGHT}px tall")
 		sys.exit()
 
 	# MAIN LOOP AFTER MAP IS PRINTED
