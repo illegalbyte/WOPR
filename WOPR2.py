@@ -121,8 +121,8 @@ class draw():
 		draw.clear_lines(50, 56)
 		return (X_COORD, Y_COORD)
 
-	# write to the bottom console
 	def console(input):
+		'''write to the bottom console'''
 		bext.fg('RED')
 		# ensures console the prompts don't print past the height of terminal
 		if len(console_prompts) > 9:
@@ -196,6 +196,10 @@ class draw():
 				bext.goto(x, y)
 				print(' ', end='')
 
+	def clear_console():
+		draw.clear_lines(48, HEIGHT)
+		bext.goto(0, 48)
+
 	def clear_to_edge(y_start, y_end, x_start):
 		'''Clears lines from x to the right end of the screen (ie the right edge)'''
 		for y in range(y_start, y_end):
@@ -210,6 +214,14 @@ class draw():
 		map_lines = WORLD_MAP.splitlines()
 		characters = list(map_lines[y])
 		return characters[x]
+
+	def ocean(x1, x2, y):
+		'''Draws an ocean between two points'''
+		for x in range(x1, x2):
+			bext.goto(x, y)
+			bext.bg('BLUE')
+			bext.fg('white')
+			print('~', end='')
 
 class missiles():
 	'''A bunch of functions related to firing and drawing missiles'''
@@ -291,6 +303,7 @@ class missiles():
 			
 		draw.draw_char(STRIKE_X, STRIKE_Y-1, '🌞')
 
+
 def print_map(COLOUR: str, SPEED: float):
 	X = 0
 	Y = 0
@@ -306,9 +319,14 @@ def print_map(COLOUR: str, SPEED: float):
 		sys.stdout.flush()
 
 
+class SubsAndSilos():
+
+	def SetUpPlayer():
+		# pick location for player's base
+		pass
 
 
-def new_game():
+def classic_mode():
 	bext.clear()
 	print_map("yellow", REFRESH_RATE)
 	# create list of countries / players: 
@@ -368,14 +386,13 @@ def new_game():
 
 	def playermove():
 		'''Ask the player what countries it should target'''
-		# clear bottom text area
-		draw.clear_lines(48, HEIGHT)
-		bext.goto(0, 48)
+		
+		draw.clear_console()  # clear bottom text area
 
 		# if there is more than 1 enemy, ask the user which country to target
 		if len(enemies) > 1:
 			target = pyinputplus.inputMenu(enemies, "CHOSE A COUNTRY TO TARGET:\n", lettered=True)
-		else:
+		else: # otherwise automatically fire at the last enemy
 			target = enemies[0]			
 
 		start_x = countries[player_country]['location'][0]
@@ -464,6 +481,83 @@ def new_game():
 
 
 
+def convert_x_coord(x: str):
+	'''Converts a grid coordinate (X, 3) to a screen coordinate (100, 3)'''
+	alpha = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+	x_values = [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96, 102, 108, 114, 120, 126, 132, 138, 144, 150]
+	x_values_dict = dict(zip(alpha, x_values))
+	return (int(x_values_dict[x.upper()])-2)
+	
+
+def find_oceans_dev():
+	'''Tool for mapping the ocean onto the map'''
+	print_map('yellow', 0.00002)
+	draw.clear_console()
+	start_y = pyinputplus.inputInt('Enter starting y coordinate: ', min=1, max=45)
+	start_x = pyinputplus.inputStr('Enter starting x coordinate (ABC...): ')
+	draw.clear_console()
+	start_x = convert_x_coord(start_x)
+	bext.goto(start_x, start_y)
+	draw.ocean(start_x, start_x, start_y)
+	draw.clear_console()
+	move_x_by = pyinputplus.inputStr('How far along is the ocean? Use either "A","B","C" or "12": ')
+	if move_x_by.isalpha():
+		move_x_by = convert_x_coord(move_x_by)
+
+	draw.ocean(start_x, start_y, move_x_by)
+
+
+
+
+
+
+def submarinesandsilos():
+	'''
+		This is the main function for the submarines and silos game.
+		It is called when the user selects the 'Submarines and Silos' option.
+		It is responsible for setting up the game, and calling the functions
+		that handle the game logic.
+	'''
+	# set up the game
+	setup_game()
+	# set up the countries
+	setup_countries()
+	# set up the submarines
+	setup_submarines()
+	# set up the silos
+	setup_silos()
+	# set up the missiles
+	setup_missiles()
+	# set up the player
+	setup_player()
+	# set up the enemies
+	setup_enemies()
+	# set up the unassigned countries
+	setup_unassigned_countries()
+	# set up the original allies and enemies
+	setup_original_allies_and_enemies()
+	# set up the original player country
+	setup_original_player_country()
+	# set up the original enemies
+	setup_original_enemies()
+	# set up the original allies
+	setup_original_allies()
+	# set up the original unassigned countries
+	setup_original_unassigned_countries()
+	# set up the original silos
+	setup_original_silos()
+	# set up the original submarines
+	setup_original_submarines()
+	# set up the original missiles
+	setup_original_missiles()
+	# set up the original player
+	setup_original_player()
+	# set up the original countries
+	setup_original_countries()
+
+	# start the game
+	submarinesandsilos_game()
+
 
 
 
@@ -478,11 +572,13 @@ def main():
 	if WIDTH < 170 or HEIGHT < 60:
 		# Ensure enough space to print the entire map
 		print(f"TERMINAL WIDTH MUST BE > 170 characters wide and > 60 characters tall\nYour terminal is only: {WIDTH}px wide by {HEIGHT}px tall")
-		sys.exit()
+		# sys.exit()
 
 	while True:
 		# Runs at the start of each game
-		new_game()
+		draw.clear_console()
+		find_oceans_dev()
+		sys.exit()
 
 
 ##############################################################################################################################
