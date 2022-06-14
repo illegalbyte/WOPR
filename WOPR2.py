@@ -198,6 +198,8 @@ class draw():
 
 	def clear_console():
 		draw.clear_lines(48, HEIGHT)
+		bext.fg('reset')
+		bext.bg('reset')
 		bext.goto(0, 48)
 
 	def clear_to_edge(y_start, y_end, x_start):
@@ -221,7 +223,7 @@ class draw():
 			bext.goto(x, y)
 			bext.bg('BLUE')
 			bext.fg('white')
-			print('~', end='')
+			print('-', end='')
 
 class missiles():
 	'''A bunch of functions related to firing and drawing missiles'''
@@ -477,34 +479,65 @@ def classic_mode():
 
 
 
-
-
-
-
 def convert_x_coord(x: str):
 	'''Converts a grid coordinate (X, 3) to a screen coordinate (100, 3)'''
 	alpha = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 	x_values = [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96, 102, 108, 114, 120, 126, 132, 138, 144, 150]
 	x_values_dict = dict(zip(alpha, x_values))
-	return (int(x_values_dict[x.upper()])-2)
+	return x_values_dict[x.upper()]-2
 	
+
 
 def find_oceans_dev():
 	'''Tool for mapping the ocean onto the map'''
 	print_map('yellow', 0.00002)
 	draw.clear_console()
 	start_y = pyinputplus.inputInt('Enter starting y coordinate: ', min=1, max=45)
-	start_x = pyinputplus.inputStr('Enter starting x coordinate (ABC...): ')
+	start_x = convert_x_coord(pyinputplus.inputStr('Enter starting x coordinate (ABC...): '))
 	draw.clear_console()
-	start_x = convert_x_coord(start_x)
-	bext.goto(start_x, start_y)
-	draw.ocean(start_x, start_x, start_y)
-	draw.clear_console()
-	move_x_by = pyinputplus.inputStr('How far along is the ocean? Use either "A","B","C" or "12": ')
-	if move_x_by.isalpha():
-		move_x_by = convert_x_coord(move_x_by)
 
-	draw.ocean(start_x, start_y, move_x_by)
+	# check if the space is correct, otherwise prompt again
+	bext.goto(start_x, start_y)
+	draw.draw_char(start_x, start_y, '~', COLOUR="BLUE")
+	draw.clear_console()
+	correct_positioning = pyinputplus.inputYesNo('Is this the correct position? ')
+	if correct_positioning:
+		# check if the space to the left is a water tile aka " "
+		x_left = start_x - 1
+		while draw.get_original_character(x_left, start_y) == ' ':
+			draw.draw_char(x_left, start_y, CHAR='~', COLOUR="BLUE")
+			x_left -= 1
+			time.sleep(0.02)
+		left_ocean = list(range(x_left+1, start_x))
+		# check if the space to the right is a water tile aka " "
+		x_right = start_x + 1
+		while draw.get_original_character(x_right, start_y) == ' ':
+			draw.draw_char(x_right, start_y, CHAR='~', COLOUR="BLUE")
+			x_right += 1
+			time.sleep(0.02)
+		right_ocean = list(range(start_x, x_right)) # +1 because it is off by 1
+
+		new_ocean_tiles_list = left_ocean + right_ocean
+
+		# completely redraw the new ocean and check if its correct?
+		print_map('yellow', 0.00002)
+		draw.clear_console()
+		for x in new_ocean_tiles_list:
+			draw.draw_char(x, start_y, CHAR='~', COLOUR="BLUE")
+			time.sleep(0.02)
+
+		draw.clear_console()
+		correctly_drawn = pyinputplus.inputYesNo('Is this the correct ocean? ')
+		if correctly_drawn:
+			ocean_tiles_coords = []
+			for x in new_ocean_tiles_list:
+				ocean_tiles_coords.append((x, start_y))
+			with open('waters.txt', 'a') as file:
+				file.write(str(ocean_tiles_coords))
+				file.write('\n')
+				file.close()
+			print('Ocean saved!')
+
 
 
 
