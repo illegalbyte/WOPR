@@ -1,6 +1,8 @@
+import ast
 import os
 from random import randint, choice
 from typing import Collection
+from unittest import case
 import bext
 import pyinputplus
 import sys
@@ -16,7 +18,8 @@ WIDTH, HEIGHT = bext.size()
 #	for Windows (OS) term width (prevents printing a newline when reaching the end of terminal)
 WIDTH -= 1
 # the speed of animations per second
-REFRESH_RATE = 0.0002
+REFRESH_RATE = 0.00002
+SMALL_PAUSE = 0.0008
 # colours which can be used by BEXT
 COLOURS = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
 # silo locations, organised by regions
@@ -201,6 +204,9 @@ class draw():
 		bext.fg('reset')
 		bext.bg('reset')
 		bext.goto(0, 48)
+	
+	def clear_screen():
+		draw.clear_to_edge(0, bext.height(), 0)
 
 	def clear_to_edge(y_start, y_end, x_start):
 		'''Clears lines from x to the right end of the screen (ie the right edge)'''
@@ -307,6 +313,8 @@ class missiles():
 
 
 def print_map(COLOUR: str, SPEED: float):
+	# clear entire terminal 
+	os.system('clear')
 	X = 0
 	Y = 0
 	for character in WORLD_MAP:
@@ -490,54 +498,109 @@ def convert_x_coord(x: str):
 
 def find_oceans_dev():
 	'''Tool for mapping the ocean onto the map'''
-	print_map('yellow', 0.00002)
-	draw.clear_console()
-	start_y = pyinputplus.inputInt('Enter starting y coordinate: ', min=1, max=45)
-	start_x = convert_x_coord(pyinputplus.inputStr('Enter starting x coordinate (ABC...): '))
-	draw.clear_console()
+	def draw_waters(colour="cyan", char="+"):
+		water_coords_list = []
+		with open('waters.txt', 'r') as waters:
+			for line in waters:
+				coords = ast.literal_eval(line)
+				for xy in coords:
+					water_coords_list.append(xy)
+		for xy in water_coords_list:
+			draw.draw_char(xy[0], xy[1], COLOUR=colour, CHAR=char)
+			time.sleep(0.0002)
+	
+	starting_coordinates = []
+	for x in ["C", "K"]:
+		x = convert_x_coord(x)
+		for y in range(10, 43):
+			starting_coordinates.append((x, y))
+			
+	
 
-	# check if the space is correct, otherwise prompt again
-	bext.goto(start_x, start_y)
-	draw.draw_char(start_x, start_y, '~', COLOUR="BLUE")
-	draw.clear_console()
-	correct_positioning = pyinputplus.inputYesNo('Is this the correct position? ')
-	if correct_positioning:
-		# check if the space to the left is a water tile aka " "
-		x_left = start_x - 1
-		while draw.get_original_character(x_left, start_y) == ' ':
-			draw.draw_char(x_left, start_y, CHAR='~', COLOUR="BLUE")
-			x_left -= 1
-			time.sleep(0.02)
-		left_ocean = list(range(x_left+1, start_x))
-		# check if the space to the right is a water tile aka " "
-		x_right = start_x + 1
-		while draw.get_original_character(x_right, start_y) == ' ':
-			draw.draw_char(x_right, start_y, CHAR='~', COLOUR="BLUE")
-			x_right += 1
-			time.sleep(0.02)
-		right_ocean = list(range(start_x, x_right)) # +1 because it is off by 1
+	for xy in starting_coordinates:
+		try:
+			y
+			start_y = int(xy[1])
+		except UnboundLocalError:
+			draw.clear_screen()
+			print_map('yellow', 0.00002)
+			draw.clear_console()  # always clear console before writing to it
+			start_y = y# pyinputplus.inputInt('Enter starting y coordinate: ', min=1, max=45)
+		else:
+			# MapStatus = True # initial state, is set to false to exit loop
+			# while MapStatus: # main loop after initial start_y is set
+				draw.clear_screen()
+				print_map('yellow', 0.00002)
+				draw_waters(colour="cyan", char="^")
+				draw.clear_console()  # always clear console before writing to it
 
-		new_ocean_tiles_list = left_ocean + right_ocean
+				# read and draw the oceans that are already saved in the .txt file
+				draw_waters(colour="cyan", char="^")
 
-		# completely redraw the new ocean and check if its correct?
-		print_map('yellow', 0.00002)
-		draw.clear_console()
-		for x in new_ocean_tiles_list:
-			draw.draw_char(x, start_y, CHAR='~', COLOUR="BLUE")
-			time.sleep(0.02)
+				draw.clear_console()		
+				draw.console(f"y coordinate is: {start_y}")
+				
+				start_x = int(xy[0]) #convert_x_coord(pyinputplus.inputStr('Enter starting x coordinate (ABC...): '))
+				draw.clear_console()
+				# check if the space is correct, otherwise prompt again
+				bext.goto(start_x, start_y)
+				draw.draw_char(start_x, start_y, CHAR='X', COLOUR="WHITE")
+				draw.clear_console()
+				correct_positioning = "YES" # str(pyinputplus.inputYesNo('Is this the correct position? ')).upper()
+				if correct_positioning == "YES":
+					# check if the space to the left is a water tile aka " "
+					x_left = start_x - 1
+					while draw.get_original_character(x_left, start_y) == ' ':
+						draw.draw_char(x_left, start_y, CHAR='~', COLOUR="BLUE")
+						x_left -= 1
+						time.sleep(SMALL_PAUSE)
+					left_ocean = list(range(x_left+1, start_x))
+					# check if the space to the right is a water tile aka " "
+					x_right = start_x + 1
+					while draw.get_original_character(x_right, start_y) == ' ' and x_right < 152:
+						draw.draw_char(x_right, start_y, CHAR='~', COLOUR="BLUE")
+						x_right += 1
+						time.sleep(SMALL_PAUSE)
+					right_ocean = list(range(start_x, x_right)) # +1 because it is off by 1
 
-		draw.clear_console()
-		correctly_drawn = pyinputplus.inputYesNo('Is this the correct ocean? ')
-		if correctly_drawn:
-			ocean_tiles_coords = []
-			for x in new_ocean_tiles_list:
-				ocean_tiles_coords.append((x, start_y))
-			with open('waters.txt', 'a') as file:
-				file.write(str(ocean_tiles_coords))
-				file.write('\n')
-				file.close()
-			print('Ocean saved!')
+					new_ocean_tiles_list = left_ocean + right_ocean
 
+					# completely redraw the new ocean and check if its correct?
+					print_map('yellow', 0.00002)
+					draw.clear_console()
+					for x in new_ocean_tiles_list:
+						draw.draw_char(x, start_y, CHAR='~', COLOUR="BLUE")
+						time.sleep(SMALL_PAUSE)
+
+					draw.clear_console()
+					correctly_drawn = "YES"# str(pyinputplus.inputYesNo('Is this the correct ocean? ')).upper()
+					if correctly_drawn == "YES":
+						ocean_tiles_coords = []
+						for x in new_ocean_tiles_list:
+							ocean_tiles_coords.append((x, start_y))
+						with open('waters.txt', 'a') as file:
+							file.write(str(ocean_tiles_coords))
+							file.write('\n')
+							file.close()
+						draw.clear_console()
+						print('Ocean saved!')
+						time.sleep(SMALL_PAUSE)
+					else:
+						continue
+
+					# ask dev if they want to continue marking oceans, else quit
+					more_maps = "Yes" # pyinputplus.inputMenu(["Yes", "No"], 'Do you want to save more maps?\n', numbered=True)
+					draw.console(more_maps)
+
+					draw.clear_console()
+					print(more_maps)
+					if more_maps == "Yes":
+						start_y += 1
+						continue
+					else:
+						MapStatus = False
+				else:
+					continue
 
 
 
