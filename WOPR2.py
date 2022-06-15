@@ -509,26 +509,26 @@ def find_oceans_dev():
 			draw.draw_char(xy[0], xy[1], COLOUR=colour, CHAR=char)
 			time.sleep(0.0002)
 	
-	starting_coordinates = []
-	for x in ["C", "K"]:
-		x = convert_x_coord(x)
-		for y in range(10, 43):
-			starting_coordinates.append((x, y))
+	# starting_coordinates = []
+	# for x in ["R"]:
+	# 	x = convert_x_coord(x)
+	# 	for y in range(18, 43):
+	# 		starting_coordinates.append((x, y))
 			
+	# for xy in starting_coordinates:
 	
 
-	for xy in starting_coordinates:
+	while True:
 		try:
-			y
-			start_y = int(xy[1])
+			start_y += 1 # = int(xy[1])
 		except UnboundLocalError:
 			draw.clear_screen()
 			print_map('yellow', 0.00002)
 			draw.clear_console()  # always clear console before writing to it
-			start_y = y# pyinputplus.inputInt('Enter starting y coordinate: ', min=1, max=45)
+			start_y =  pyinputplus.inputInt('Enter starting y coordinate: ', min=1, max=45)
 		else:
-			# MapStatus = True # initial state, is set to false to exit loop
-			# while MapStatus: # main loop after initial start_y is set
+			MapStatus = True # initial state, is set to false to exit loop
+			while MapStatus: # main loop after initial start_y is set
 				draw.clear_screen()
 				print_map('yellow', 0.00002)
 				draw_waters(colour="cyan", char="^")
@@ -540,13 +540,18 @@ def find_oceans_dev():
 				draw.clear_console()		
 				draw.console(f"y coordinate is: {start_y}")
 				
-				start_x = int(xy[0]) #convert_x_coord(pyinputplus.inputStr('Enter starting x coordinate (ABC...): '))
+				start_x = convert_x_coord(pyinputplus.inputStr('Enter starting x coordinate (ABC...): ')) #int(xy[0]) #
 				draw.clear_console()
 				# check if the space is correct, otherwise prompt again
 				bext.goto(start_x, start_y)
 				draw.draw_char(start_x, start_y, CHAR='X', COLOUR="WHITE")
 				draw.clear_console()
-				correct_positioning = "YES" # str(pyinputplus.inputYesNo('Is this the correct position? ')).upper()
+				if draw.get_original_character(start_x, start_y) != ' ':
+					draw.clear_console()
+					draw.console(f"The space is not empty, please try again")
+					time.sleep(0.5)
+					continue
+				correct_positioning = str(pyinputplus.inputYesNo('Is this the correct position? ')).upper()
 				if correct_positioning == "YES":
 					# check if the space to the left is a water tile aka " "
 					x_left = start_x - 1
@@ -573,7 +578,7 @@ def find_oceans_dev():
 						time.sleep(SMALL_PAUSE)
 
 					draw.clear_console()
-					correctly_drawn = "YES"# str(pyinputplus.inputYesNo('Is this the correct ocean? ')).upper()
+					correctly_drawn = str(pyinputplus.inputYesNo('Is this the correct ocean? ')).upper()
 					if correctly_drawn == "YES":
 						ocean_tiles_coords = []
 						for x in new_ocean_tiles_list:
@@ -589,11 +594,11 @@ def find_oceans_dev():
 						continue
 
 					# ask dev if they want to continue marking oceans, else quit
-					more_maps = "Yes" # pyinputplus.inputMenu(["Yes", "No"], 'Do you want to save more maps?\n', numbered=True)
+					more_maps = pyinputplus.inputMenu(["Yes", "No"], 'Do you want to save more maps?\n', numbered=True)
 					draw.console(more_maps)
 
 					draw.clear_console()
-					print(more_maps)
+
 					if more_maps == "Yes":
 						start_y += 1
 						continue
