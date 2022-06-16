@@ -1,4 +1,5 @@
 import ast
+from decimal import ROUND_DOWN
 from pprint import pprint
 import os
 from random import randint, choice
@@ -93,6 +94,10 @@ WORLD_MAP_GRAPH = [list(line) for line in WORLD_MAP_GRAPH] # converts each line 
 sys.setrecursionlimit(len(WORLD_MAP_GRAPH)*len(WORLD_MAP_GRAPH[0])*2)
 
 
+class utility():
+	def removeDuplicates(lst):
+		return list(set([i for i in lst]))
+
 
 class draw():
 
@@ -141,7 +146,7 @@ class draw():
 			# make circle twice as wide as it is tall
 			x = X + RADIUS*math.cos(theta)
 			y = Y - (RADIUS/2)*math.sin(theta) # - 0.5 to make it symmetrical
-			if x > 154:
+			if x > 152:
 				x = x - 152
 			if x < 0: # prevent the circle from going off the screen, and wrap around
 				x = x + 152
@@ -150,27 +155,14 @@ class draw():
 				continue
 			if draw.get_original_character(x, y) == ' ':
 				draw.draw_char(x, y, 'X', COLOUR=COLOUR)
-				circle.append((x, y))
-			
+				if (round(x), round(y)) not in circle: # prevents duplicate x, y coords being added due to decimal differences
+					circle.append((round(x), round(y)))	
 			theta += step
 
 		return circle
 
-	# def draw_line(X1, Y1, X2, Y2, COLOUR='RED'):
-	# 	'''draws a circle between two points'''
-	# 	x1 = X1
-	# 	y1 = Y1
-	# 	x2 = X2
-	# 	y2 = Y2
-	# 	if x1 > x2:
-	# 		x1, x2 = x2, x1
-	# 	if y1 < y2:
-	# 		y1, y2 = y2, y1
-	# 	for x in range(round(x1), round(x2)):
-	# 		y = (y2 - y1)/(x2 - x1)*(x - x1) + y1
-	# 		draw.draw_char(x, y, 'X', COLOUR=COLOUR)
 
-	def get_line(start, end):
+	def get_line(start, end) -> list:
 		"""Bresenham's Line Algorithm
 		http://www.roguebasin.com/index.php/Bresenham%27s_Line_Algorithm#Python
 		Produces a list of tuples from start and end
@@ -228,15 +220,20 @@ class draw():
 			points.reverse()
 		return points
 
-
-	def draw_line(x1, y1, x2, y2, COLOUR='RED', wrapable=False):
-		'''draws a line between two points'''
+	def draw_line(x1, y1, x2, y2, COLOUR='RED', ocean_only=True) -> list:
+		'''draws a line between two points – returns a list of all the coords that were drawn'''
 		points = draw.get_line((round(x1), round(y1)), (round(x2), round(y2)))
+		valid_points = []
 		for point in points:
 			x, y = point
 			if x > 152: # prevent the line from going off the screen, and wrap around
 				continue
+			# check if ocean tile
+			if ocean_only and not map.check_for_ocean(x,y):
+				continue
 			draw.draw_char(x, y, 'X', COLOUR=COLOUR)
+			valid_points.append((x,y))
+		return valid_points
 
 	def ask_for_coordinates():
 		'''prints dialogue at the bottom which asks for coordinates and returns a tuple of the (x, y)'''
@@ -345,7 +342,8 @@ class draw():
 		assumes that WORLD_MAP variable has not changed from initial state'''
 		map_lines = WORLD_MAP.splitlines()
 		characters = list(map_lines[round(y)])
-		return characters[round(x)]
+
+		return characters[round(x)] 
 
 	def ocean(x1, x2, y):
 		'''Draws an ocean between two points'''
@@ -437,7 +435,6 @@ class missiles():
 		draw.draw_char(STRIKE_X, STRIKE_Y-1, '🌞')
 
 
-
 class map():
 	'''Methods and attributes for the map'''
 
@@ -474,7 +471,10 @@ class map():
 		return xy_ocean_coords
 
 	def check_for_ocean(x, y) -> bool:
+		'''checks if a tile is ocean'''
 		ocean_tiles = map.get_ocean_tiles()
+		if x < 2: # prevents drawing on the numbers
+			return False
 		if (x, y) in ocean_tiles:
 			return True
 		else:
@@ -487,7 +487,22 @@ class map():
 		x_values_dict = dict(zip(alpha, x_values))
 		return x_values_dict[x.upper()]-2 # minus 2 due to an error offset with x_values (A is actually 4, etc) too lazy to fix rn
 
-	# draw subs
+	def get_coordinates_inside_circle(circle_center: tuple, circle_coords: list) -> list:
+		'''
+		circle = a list of coordinates of the circle's circumference
+		Returns all the coordinates that are within a circle drawn.
+		'''
+		coords_in_circle = []
+		for x, y in circle_coords:
+			line = draw.get_line((circle_center[0], circle_center[1]), (x, y))
+			for x, y in line:
+				if (x, y) not in coords_in_circle:
+					coords_in_circle.append((x, y))
+		
+		return coords_in_circle
+
+
+
 	def print_subs(player="", enemies=[], allies=[], REVEALED_ENEMIES=[]):
 		'''Draws the enemy subs, takes in a list of enemies, a list of allies, and the player's countries name (string)'''
 		for country_name, country_data in countries.items():
@@ -860,23 +875,48 @@ class SubsAndSilos():
 	def action_sonar(player_country: str, enemies: list, allies: list, radius: int) -> list:
 		'''
 		Performs a sonar around the submarine, displaying a blue circle around the submarine like a sonar
-		returns a list of enemy subs in the radius and their country
+		returns a list of x,y coords that were made visible
 		'''
 		player_sub = countries[player_country]['subs'][0] # the x, y coordinates of the player's sub
 		# draw a blue circle around the player's sub, indicating possible detect locations (10 tile radius)
 		sonar = draw.draw_circle(player_sub[0], player_sub[1], RADIUS=radius, COLOUR="BLUE") # returns a list of the tiles that are in the radius of the sub
+		visible_coords = [] # used to store the x,y of the lines that were drawn during the sonar so we can return what was visible to the submarine
 		for xy in sonar:
 			# draw a blue line between the sub and the sonar
 			# if the radius * 1.2 is less than the distance between the sub and the sonar, draw a normal line
 			if missiles.get_distance(player_sub[0], player_sub[1], xy[0], xy[1]) < (radius * 1.2):
-				draw.draw_line(player_sub[0], player_sub[1], xy[0], xy[1], COLOUR="BLUE")
-				time.sleep(0.02)
+				coords = draw.draw_line(player_sub[0], player_sub[1], xy[0], xy[1], COLOUR="BLUE")
+				time.sleep(0.002)
+				visible_coords.extend(coords) 
 			else:
 				# otherwise it must have wrapped around the map, so draw a line starting at the otherside of the map, but only if x < 154 and y < 45
-				subx, suby = player_sub[0] + 154, player_sub[1]
-				draw.draw_line(subx-154, suby, 3, xy[1], COLOUR="BLUE", wrapable=True)
-				draw.draw_line(subx, suby, xy[0], xy[1], COLOUR="BLUE", wrapable=True) 
-				time.sleep(0.02)
+				
+				if player_sub[0] < (152 / 2): # handles when the sub is on the left edge of the map:
+					subx, suby = player_sub[0] + 154, player_sub[1] # if the sub is on the left side, then we add 154 to the x coord in order to wrap it around
+					visible_coords.extend( draw.draw_line(subx - 154, suby, 1, xy[1], COLOUR="BLUE")) # this one draws the line from the submarine's original location (since we still need a line there too)
+					visible_coords.extend( draw.draw_line(subx, suby, xy[0], xy[1], COLOUR="BLUE")) # this one is for drawing the line at the other side of the map
+				else: # handles when the sub is on the left edge of the map:
+					subx, suby = player_sub[0] - 154, player_sub[1] # if the sub is on the right side, then we need to subtract 154 
+					visible_coords.extend( draw.draw_line(player_sub[0], suby, 153, xy[1], COLOUR="BLUE")) # this one draws the line from the submarine's original location (since we still need a line there too)
+					visible_coords.extend( draw.draw_line(subx, suby, xy[0], xy[1], COLOUR="BLUE")) # this one is for drawing the line at the other side of the map
+
+				time.sleep(0.006)
+		return utility.removeDuplicates(visible_coords) # remove duplicate x,y tuples
+
+	def search_for_subs(seeking_countries: list, search_coords: list):
+		sub_coords = []
+		for country_name, country_data in countries.items():
+			if country_name in seeking_countries:
+				sub_coords.extend(country_data["subs"])
+		
+		found_subs = []
+		for sub_coords in sub_coords:
+			if sub_coords in search_coords:
+				found_subs.append(sub_coords)
+
+		return found_subs
+
+
 
 
 	def setup_game():
@@ -963,11 +1003,15 @@ class SubsAndSilos():
 			def action_attack():
 				# draw a red circle around the player's sub, indicating possible attack locations (10 tile radius)
 				draw.draw_circle(countries[player_country]['subs'][0][0], countries[player_country]['subs'][0][1], RADIUS=20, COLOUR="RED")
+				
 				bext.goto(0,0)
 				draw.clear_console()
 				time.sleep(100)
 		elif action == "Detect":
-			SubsAndSilos.action_sonar(player_country, enemies, allies, 13)
+			visible_coords = SubsAndSilos.action_sonar(player_country, enemies, allies, 13)
+			visible_subs = SubsAndSilos.search_for_subs(["Colombia"], visible_coords) # BUG: NOT WORKING RN?
+			draw.console(f"{visible_subs}")
+
 
 
 
