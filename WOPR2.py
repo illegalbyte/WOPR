@@ -12,8 +12,7 @@ import math
 import a_star
 import game
 import random
-import json
-import pickle
+from playsound import playsound
 
 
 
@@ -98,6 +97,12 @@ class utility():
 	def removeDuplicates(lst):
 		return list(set([i for i in lst]))
 
+	def reverse_lookup_submarine(submarine: tuple) -> str:
+		for country in countries:
+			if countries[country]['subs']:
+				if submarine in countries[country]['subs']:
+					return country
+
 
 class draw():
 
@@ -115,7 +120,7 @@ class draw():
 				x, y = target
 				draw.draw_char(x, y, r'{X}', COLOUR='WHITE')
 	
-	def draw_fallout(STRIKE_X, STRIKE_Y, RADIUS=2, SPEED=0.03, COLOUR="PURPLE", CHAR="X"):
+	def draw_fallout_old(STRIKE_X, STRIKE_Y, RADIUS=2, SPEED=0.03, COLOUR="PURPLE", CHAR="X"):
 		'''DRAWS RADIATION CIRCLE'''
 		# https://www.mathopenref.com/coordcirclealgorithm.html
 		while RADIUS != 0:
@@ -133,19 +138,41 @@ class draw():
 				draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
 				time.sleep(SPEED)
 				theta += step
-			RADIUS -=1				
-	
-	def draw_circle(X, Y, RADIUS, COLOUR='RED') -> list:
+			RADIUS -=1
+
+	def draw_fallout(target: tuple, RADIUS=2, SPEED=0.03, COLOUR="Green", CHAR="X"):
+		circles_drawn = 0
+		fallout_coords = []
+		while circles_drawn < RADIUS+1:
+			coords = draw.draw_circle(target[0], target[1], circles_drawn, COLOUR="PURPLE", erase_map_tiles=True, radius_modifier=1)
+			for x, y in coords:
+				draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
+				time.sleep(0.4)
+			fallout_coords.extend(coords)
+			circles_drawn += 1
+
+		return fallout_coords
+
+	def draw_circle(X, Y, RADIUS, COLOUR='RED', CHAR="X", erase_map_tiles=False, radius_modifier=2, visible=True) -> list:
+		'''
+		Draws a hollow circle around the X, Y coords with specific RADIUS
+		By default, the circle's perimeter will not draw over any spaces which are not blank in the WORLD_MAP matrix 
+
+		--> raiud_modifier: divide the height of the circle by this number, so that it appears normally in terminals where the height of a char is usually 2x the width
+
+		Returns a list of the coords of the perimiter of the circle
+		'''
 		# https://www.mathopenref.com/coordcirclealgorithm.html
 		'''DRAWS A HOLLOW CIRCLE AROUND A SPECIFIC LOCATION
 			Returns a list of the coordinates of the circle'''
+			# TODO: separate the drawing of the circle from getting the coordinates
 		circle = []
 		theta = 0
-		step = 2*math.pi/200
+		step = 2*math.pi/2000
 		while theta <= 2*math.pi:
 			# make circle twice as wide as it is tall
 			x = X + RADIUS*math.cos(theta)
-			y = Y - (RADIUS/2)*math.sin(theta) # - 0.5 to make it symmetrical
+			y = Y - (RADIUS/radius_modifier)*math.sin(theta) # radius / 2 because the circle is drawn twice as wide as it is tall
 			if x > 152:
 				x = x - 152
 			if x < 0: # prevent the circle from going off the screen, and wrap around
@@ -153,16 +180,21 @@ class draw():
 			if y > 45:
 				theta += step
 				continue
-			if draw.get_original_character(x, y) == ' ':
-				draw.draw_char(x, y, 'X', COLOUR=COLOUR)
+			if draw.get_original_character(x, y) == ' ': # prevents drawing on top of map tiles
+				if visible:
+					draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
+				if (round(x), round(y)) not in circle: # prevents duplicate x, y coords being added due to decimal differences
+					circle.append((round(x), round(y)))	
+			elif erase_map_tiles: # if we don't care about the map tiles, draw over them
+				if visible:
+					draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
 				if (round(x), round(y)) not in circle: # prevents duplicate x, y coords being added due to decimal differences
 					circle.append((round(x), round(y)))	
 			theta += step
 
 		return circle
 
-
-	def get_line(start, end) -> list:
+	def get_line(start: tuple, end: tuple) -> list:
 		"""Bresenham's Line Algorithm
 		http://www.roguebasin.com/index.php/Bresenham%27s_Line_Algorithm#Python
 		Produces a list of tuples from start and end
@@ -235,15 +267,25 @@ class draw():
 			valid_points.append((x,y))
 		return valid_points
 
-	def ask_for_coordinates():
+	def ask_for_coordinates() -> tuple:
 		'''prints dialogue at the bottom which asks for coordinates and returns a tuple of the (x, y)'''
-		bext.goto(0, 50)
+		draw.clear_console()
 		bext.fg('RED')
-		X_COORD = pyinputplus.inputInt('ENTER X LOCTAION FOR FIRST STRIKE > ', min=0, max=154)
-		bext.goto(0, 52)
-		Y_COORD = pyinputplus.inputInt('ENTER Y LOCTAION FOR FIRST STRIKE > ', min=0, max=45)
+		x_coord = "0" # placeholder val so we can start a while loop below
+		while not x_coord.isalpha() or len(x_coord) != 1:
+			bext.goto(0, 50)
+			x_coord = pyinputplus.inputStr('ENTER X LOCTAION [A,B,C...] > ')
+			draw.clear_console()
+
+		x_coord_letter = x_coord
+		x_coord = map.convert_x_coord(x_coord)
+		draw.console(f"TARGET X AXIS: {(x_coord_letter.upper())} / {x_coord}")
+		bext.fg('RED')
+		y_coord = pyinputplus.inputInt('ENTER Y LOCTAION [1,2,3...] > ', min=0, max=45)
 		draw.clear_lines(50, 56)
-		return (X_COORD, Y_COORD)
+		
+
+		return (x_coord, y_coord)
 
 	def console(input):
 		'''write to the bottom console'''
@@ -354,6 +396,17 @@ class draw():
 			print('-', end='')
 
 
+class Submarine:
+	allies = []
+	enemies = []
+
+	def __init__(self, xy: tuple, country: str):
+		self.country = country
+		self.coords = xy
+		self.status = True
+		self.destroyed = False
+		self.allies.append(self.country)
+
 
 class missiles():
 	'''A bunch of functions related to firing and drawing missiles'''
@@ -434,6 +487,23 @@ class missiles():
 			
 		draw.draw_char(STRIKE_X, STRIKE_Y-1, '🌞')
 
+	def ICBM_bresenham(start: tuple, strike: tuple, chemtrail=True, speed=0.4):
+		'''
+		Launch a missile from start to strike using the Bresenham algorithm.
+		returns a list of tuples representing the coords which were detonated. 
+		'''
+		chemtrail_colour = "WHITE"
+		chemtrail_icon = "*"
+		line = draw.get_line(start, strike)
+		for xy in line:
+			draw.draw_char(xy[0], xy[1], chemtrail_icon, COLOUR=chemtrail_colour)
+			time.sleep(speed)
+			if xy == strike:
+				fallout = draw.draw_fallout(strike, 2, speed/2, "purple", "*")
+				break
+
+		return fallout
+
 
 class map():
 	'''Methods and attributes for the map'''
@@ -455,7 +525,6 @@ class map():
 			sys.stdout.flush()
 		if ocean:
 			map.print_ocean()
-
 
 	def print_ocean(SYMBOL: str="^", OCEAN_COLOUR: str="CYAN"):
 		with open('WATER_COORDS.txt', 'r') as f:
@@ -480,6 +549,13 @@ class map():
 		else:
 			return False
 
+	def check_for_obstruction(list_of_coords: list) -> bool:
+		'''checks if a list of coordinates is entirely ocean'''
+		for xy in list_of_coords:
+			if not map.check_for_ocean(xy[0], xy[1]):
+				return False
+		return True
+
 	def convert_x_coord(x: str) -> int:
 		'''Converts a grid coordinate (X, 3) to a screen coordinate (100, 3)'''
 		alpha = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
@@ -500,8 +576,6 @@ class map():
 					coords_in_circle.append((x, y))
 		
 		return coords_in_circle
-
-
 
 	def print_subs(player="", enemies=[], allies=[], REVEALED_ENEMIES=[]):
 		'''Draws the enemy subs, takes in a list of enemies, a list of allies, and the player's countries name (string)'''
@@ -538,7 +612,7 @@ class map():
 		'''
 		map.print_map(COLOUR='YELLOW', SPEED=REFRESH_RATE)
 		map.print_ocean()
-		map.print_subs(player=player, allies=allies, REVEALED_ENEMIES=Found_Enemy_Subs)
+		map.print_subs(player=player, allies=allies, enemies=enemies)
 		draw.player_list(allies, enemies, player)
 		map.print_silos(player=player, enemies=enemies, allies=allies)
 		
@@ -853,6 +927,11 @@ def classic_mode():
 
 class SubsAndSilos():
 
+	def audio(type:str):
+		if type == "sub_launch":
+			playsound("sounds/sfx_exp_medium7.wav")
+
+
 	def display_map():
 		'''Display the map of the game'''
 		bext.clear()
@@ -886,7 +965,7 @@ class SubsAndSilos():
 			# if the radius * 1.2 is less than the distance between the sub and the sonar, draw a normal line
 			if missiles.get_distance(player_sub[0], player_sub[1], xy[0], xy[1]) < (radius * 1.2):
 				coords = draw.draw_line(player_sub[0], player_sub[1], xy[0], xy[1], COLOUR="BLUE")
-				time.sleep(0.002)
+				time.sleep(0.0002)
 				visible_coords.extend(coords) 
 			else:
 				# otherwise it must have wrapped around the map, so draw a line starting at the otherside of the map, but only if x < 154 and y < 45
@@ -903,6 +982,44 @@ class SubsAndSilos():
 				time.sleep(0.006)
 		return utility.removeDuplicates(visible_coords) # remove duplicate x,y tuples
 
+	def action_attack(player_country):
+		# draw a red circle around the player's sub, indicating possible attack locations (10 tile radius)
+		circle = draw.draw_circle(countries[player_country]['subs'][0][0], countries[player_country]['subs'][0][1], RADIUS=20, COLOUR="RED", erase_map_tiles=True)
+		coords_inside_circle = map.get_coordinates_inside_circle((countries[player_country]['subs'][0][0], countries[player_country]['subs'][0][1]), circle)	
+		missile_coords_valid = False
+		while not missile_coords_valid:
+			draw.clear_console()
+			target_coords = draw.ask_for_coordinates()
+			if target_coords in coords_inside_circle:
+				missile_coords_valid = True
+			else:
+				draw.clear_console()
+				draw.console("ERR: TARGET NOT IN PROXIMITY!")
+				time.sleep(2)
+		SubsAndSilos.audio("sub_launch")
+		return missiles.ICBM_bresenham(countries[player_country]['subs'][0], target_coords)
+				
+	def action_move(subxy: tuple, direction: str, distance: int):
+		'''
+		Moves the submarine in the specified direction
+		returns the new x,y coordinates of the submarine if they are valid (ie in the ocean)
+		otherwise returns the False
+		'''
+		# validate that it is an ocean tile
+		if direction == "N":
+			moveto = (subxy[0], subxy[1] - distance)
+		elif direction == "S":
+			moveto = (subxy[0], subxy[1] + distance)
+		elif direction == "W":
+			moveto = (subxy[0] - distance, subxy[1])
+		elif direction == "E":
+			moveto = (subxy[0] + distance, subxy[1])
+
+		if map.check_for_ocean(moveto[0], moveto[1]):
+			return moveto
+		else:
+			return False
+
 	def search_for_subs(seeking_countries: list, search_coords: list):
 		sub_coords = []
 		for country_name, country_data in countries.items():
@@ -915,9 +1032,6 @@ class SubsAndSilos():
 				found_subs.append(sub_coords)
 
 		return found_subs
-
-
-
 
 	def setup_game():
 		
@@ -974,66 +1088,81 @@ class SubsAndSilos():
 		for country_name, country_data in countries.items():
 			if country_name in enemies or country_name in allies and not country_name == player_country:
 				country_data['subs'].append(choice(ocean_coords))
-				
-
-
+		
 		map.print_subs(player_country, allies=allies) # draw subs minus enemies
 
 		return player_country, enemies, allies, original_allies, original_enemies
 			
 
-
 	def player_move(player_country, enemies, allies, original_allies, original_enemies):
 		'''Player's turn'''
-		map.print_all_layers(player_country, enemies, allies)
+		map.print_all_layers(player_country, enemies, allies, Found_Enemy_Subs=enemies)
 		draw.clear_console()
 		action = pyinputplus.inputMenu(["Move", "Attack", "Detect", "End Turn"], "What would you like to do?\n", lettered=True)
 		draw.clear_console()
+		player_sub_x, player_sub_y = countries[player_country]['subs'][0]
 		if action == "Move":
-			# draw a green circle around the player's sub, indicating possible move locations (2 tile radius)
-			draw.draw_fallout(countries[player_country]['subs'][0][0], countries[player_country]['subs'][0][1], RADIUS=2, COLOUR="GREEN")
+			distance_max = 10
+			# draw a green circle around the player's sub, indicating possible move locations (4 tile radius)
+			draw.draw_circle(player_sub_x, player_sub_y, RADIUS=distance_max, COLOUR="GREEN")
 			# ask player to move N, S, E, W
 			draw.clear_console()
-			move_direction = pyinputplus.inputMenu(["N", "S", "E", "W"], "Where would you like to move?\n", lettered=True)
+			move_direction = pyinputplus.inputMenu(["N", "S", "E", "W"], "What direction would you like to move?\n", lettered=True)
+			move_distance = pyinputplus.inputInt("How many tiles would you like to move?\n", min=1, max=distance_max-1)
 			# move the sub
-			countries[player_country]['subs'][0] = map.move_sub(countries[player_country]['subs'][0], move_direction) # TODO: create map.move_sub function
-			map.print_all_layers(player_country, enemies, allies)
-			draw.clear_console()
-		elif action == "Attack":
-			def action_attack():
-				# draw a red circle around the player's sub, indicating possible attack locations (10 tile radius)
-				draw.draw_circle(countries[player_country]['subs'][0][0], countries[player_country]['subs'][0][1], RADIUS=20, COLOUR="RED")
-				
-				bext.goto(0,0)
+			new_sub_coords = SubsAndSilos.action_move((player_sub_x, player_sub_y), move_direction, move_distance)
+			if new_sub_coords:
+				countries[player_country]['subs'][0] = SubsAndSilos.action_move(countries[player_country]['subs'][0], move_direction, move_distance)
 				draw.clear_console()
-				time.sleep(100)
+		elif action == "Attack":
+			destroyed_coords = SubsAndSilos.action_attack(player_country)
+			destroyed_subs = SubsAndSilos.search_for_subs(enemies, destroyed_coords)
+			for sub in destroyed_subs:
+				country = utility.reverse_lookup_submarine(sub)
+				draw.console(f"IDENTIFIED TARGET: {country} SUBMARINE WARHEAD CARRIER DESTROYED")
+				time.sleep(0.4)
+				countries[country]['subs'].remove(sub)
+				if sub in enemies:
+					enemies.remove(sub)
+				if sub in allies:
+					allies.remove(sub)
+			time.sleep(2)
 		elif action == "Detect":
 			visible_coords = SubsAndSilos.action_sonar(player_country, enemies, allies, 13)
-			visible_subs = SubsAndSilos.search_for_subs(["Colombia"], visible_coords) # BUG: NOT WORKING RN?
-			draw.console(f"{visible_subs}")
+			visible_subs = SubsAndSilos.search_for_subs(enemies, visible_coords)
+			if visible_subs:
+				draw.console(f"Detected enemies at: {visible_subs}")
+				time.sleep(5)
+			
+		return player_country, enemies, allies, original_allies, original_enemies
+
+	def enemy_move(player_country, enemies, allies, original_allies, original_enemies):
+		'''Enemy's turn'''
+		map.print_all_layers(player_country, enemies, allies, Found_Enemy_Subs=enemies)
+		draw.clear_console()
+		# for each enemy sub, randomly move 1-8 tiles
+		for country in enemies:
+			move_valid = False
+			while not move_valid:
+				move_distance = randint(5,10)
+				possible_moves = draw.draw_circle(countries[country]['subs'][0][0], countries[country]['subs'][0][1], RADIUS=move_distance, visible=False)
+				new_sub_coords = choice(possible_moves)
+				travel_line = draw.get_line(countries[country]["subs"][0], new_sub_coords)
+				if new_sub_coords and map.check_for_obstruction(travel_line): # validate that it is a possible travel path
+					move_valid = True
+			countries[country]["subs"][0] = new_sub_coords
+			
+			draw.console(f"{country} SUBMARINE WARHEAD CARRIER MOVED")
+			time.sleep(0.8)
+			for tile in travel_line:
+				if tile == new_sub_coords:
+					draw.draw_char(tile[0], tile[1], "𝑆", COLOUR="RED")
+				else:
+					draw.draw_char(tile[0], tile[1], ">", COLOUR="GREEN")
+				time.sleep(0.1)
+			time.sleep(3)
 
 
-
-
-	def setup_submarines():
-		pass
-
-	def setup_silos():
-		pass
-
-	def setup_missiles():
-		pass
-
-	def setup_player():
-		pass
-
-	def setup_enemies():
-		pass
-
-	def start():
-		pass
-
-		
 
 def submarinesandsilos():
 	'''
@@ -1051,33 +1180,10 @@ def submarinesandsilos():
 	# ...
 
 	# Ask Player to Move
-	SubsAndSilos.player_move(player_country, enemies, allies, original_allies, original_enemies)
+	while True:
+		player_country, enemies, allies, original_allies, original_enemies = SubsAndSilos.player_move(player_country, enemies, allies, original_allies, original_enemies)
+		SubsAndSilos.enemy_move(player_country, enemies, allies, original_allies, original_enemies)
 
-	'''	# set up the unassigned countries
-	setup_unassigned_countries()
-	# set up the original allies and enemies
-	setup_original_allies_and_enemies()
-	# set up the original player country
-	setup_original_player_country()
-	# set up the original enemies
-	setup_original_enemies()
-	# set up the original allies
-	setup_original_allies()
-	# set up the original unassigned countries
-	setup_original_unassigned_countries()
-	# set up the original silos
-	setup_original_silos()
-	# set up the original submarines
-	setup_original_submarines()
-	# set up the original missiles
-	setup_original_missiles()
-	# set up the original player
-	setup_original_player()
-	# set up the original countries
-	setup_original_countries()
-	'''
-	# start the game
-	SubsAndSilos.start()
 
 
 
