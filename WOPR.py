@@ -4,30 +4,10 @@
 #	> a text based game inspired by War Games 
 
 
-import os
 from random import randint, choice
-from typing import Collection
 import bext
 import pyinputplus
-import sys
 import time
-import math
-import a_star
-import game
-
-
-
-# TODO: dict of each country: 
-	# Each country has a unique pathfinding algo
-	# each country is assigned a colour
-	# each contry has a payload (area of effect)
-	# each country has a unique number of missiles
-	# some countries have nuclear submarines
-	# you can only view your own submarine and missile base locations
-	# have to guess where the other countries are
-	# friendly countries appear coloured in
-	# implemnent a DEFCON warning system
-	# the DEFCON system will affect other countries Hostility
 
 
 
@@ -87,8 +67,6 @@ countries = {
 			'region': 'PACIFIC'
 			}
 }
-
-console_prompts = []
 
 # READ THE WORLD MAP AND STORE IN CONSTANT: WORLD_MAP
 from pprint import pprint as pp
@@ -292,41 +270,6 @@ class missiles():
 
 			time.sleep(REFRESH_RATE)
 
-	# this path algo is incomplete
-	def ICBM_miko():
-			START_X, START_Y = (0, 0)
-			STRIKE_X, STRIKE_Y = (80, 23)
-
-			y_height = abs(STRIKE_X - START_X)
-			x_height = abs(STRIKE_Y - START_Y)
-
-			if y_height > x_height:
-				x_delta = x_height / y_height
-				y_delta = 1
-				for i in range(y_height):
-					draw.draw_char(START_X+x_delta, START_Y+y_delta, '🌞', 'PURPLE')
-					time.sleep(0.2)
-					START_X += x_delta
-					START_Y += y_delta
-			elif x_height > y_height:
-				x_delta = 1
-				y_delta = y_height / x_height
-				for i in range(x_height):
-					draw.draw_char(START_X+x_delta, START_Y+y_delta, '🌞', 'PURPLE')
-					time.sleep(0.2)
-					START_X += x_delta
-					START_Y += y_delta
-
-	# uses a shortest path breadth algorithm – should be used for obstacle avoidance 
-	# TODO: requires the map characters are in a 2D list format, not a string 
-	def ICBM_shortestPath(START_X, START_Y, STRIKE_X, STRIKE_Y):
-		shortest_path = a_star.getShortestPath(
-			WORLD_MAP_GRAPH, [START_X, START_Y], [STRIKE_X, STRIKE_Y])
-		for coordinate in shortest_path:
-			x, y = coordinate
-			draw.draw_char(x, y, 'X', COLOUR='PURPLE')
-			time.sleep(0.02)
-
 	# launches the missiles in an angled diagonal line
 	# TODO: add a wind effect to randomise missile paths
 	def ICBM_diag(START_X, START_Y, STRIKE_X, STRIKE_Y, COL='PURPLE', ICON='🌞', REFRESH_RATE=REFRESH_RATE):
@@ -380,33 +323,6 @@ class missiles():
 			number_of_launches -= 1
 		
 		return launch_coords
-
-
-	# TODO: get this to fix diag algo so it properly prints vertical firing paths (ie iterates over distance, not the difference of the x coordinates)
-	def launch_ICBM_diag2(START_X, START_Y, STRIKE_X, STRIKE_Y, COL='PURPLE', ICON='🌞'):
-		# to prevent divide by 0 errors when calculating slope:
-		if STRIKE_X == START_X:
-			STRIKE_X += 1
-		elif STRIKE_Y == STRIKE_Y:
-			STRIKE_Y += 1
-		# Slope formula y2-y1 / x2-x1
-		slope = (STRIKE_Y - START_Y) / (STRIKE_X - START_X)
-		# this is the range we need to iterate over when drawing the animation
-		distance = round(missiles.get_distance(START_X, START_Y, STRIKE_X, STRIKE_Y))
-		# if the destination is to the right of the start/launch site
-		if STRIKE_X > START_X:
-			# iterate over the distance that has to be travelled
-			for x in range(distance+START_X, distance+STRIKE_X):
-				draw.draw_char(x, START_Y, ICON, COLOUR=COL)
-				START_Y += slope
-				time.sleep(REFRESH_RATE)
-		# if the destination is to the left
-		elif STRIKE_X < START_X:
-		
-			for x in range(distance+STRIKE_X, distance+START_X):
-				draw.draw_char(START_X-x, START_Y, ICON, COLOUR=COL)
-				START_Y -= slope
-				time.sleep(REFRESH_RATE)
 
 class weapons:
 	def __init__(self, xy: tuple, missiles: int, status: bool, country: str, base_icon='@'):
