@@ -7,17 +7,9 @@ import ast
 from draw import Draw
 from missiles import Missiles
 
-# BEXT REQUIREMENTS, for printing to the screen
-WIDTH, HEIGHT = bext.size()
-#	for Windows (OS) term width (prevents printing a newline when reaching the end of terminal)
-WIDTH -= 1
-# the speed of animations per second
-REFRESH_RATE = 0.00002
-SMALL_PAUSE = 0.0008
-# colours which can be used by BEXT
-COLOURS = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
-# console prompts list (stores the prompts for the game)
-console_prompts = []
+from WOPR2 import WIDTH, REFRESH_RATE, SMALL_PAUSE, COLOURS, countries, console_prompts, WORLD_MAP, WORLD_MAP_GRAPH
+
+
 # Read world map from map .txt file 
 with open('WORLD_MAP.txt', 'r') as map:
 	WORLD_MAP = map.read()
@@ -303,7 +295,7 @@ class Map():
 
 						Draw.clear_console()
 						correctly_drawn = str(pyinputplus.inputYesNo('Is this the correct ocean? ')).upper()
-						if correctly drawn == "YES":
+						if correctly_drawn == "YES":
 							ocean_tiles_coords = []
 							for x in new_ocean_tiles_list:
 								ocean_tiles_coords.append((x, start_y))

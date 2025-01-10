@@ -14,6 +14,7 @@ from missiles import Missiles
 from map import Map
 from game import classic_mode, SubsAndSilos, submarinesandsilos, main
 
+
 # BEXT REQUIREMENTS, for printing to the screen
 WIDTH, HEIGHT = bext.size()
 #	for Windows (OS) term width (prevents printing a newline when reaching the end of terminal)

@@ -2,6 +2,11 @@ import math
 import time
 import a_star
 from draw import Draw
+from random import randint
+
+
+from WOPR2 import WIDTH, REFRESH_RATE, SMALL_PAUSE, COLOURS, countries, console_prompts, WORLD_MAP, WORLD_MAP_GRAPH # import constants from WOPR2.py
+
 
 class Missiles():
     """
