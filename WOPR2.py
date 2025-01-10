@@ -4,7 +4,6 @@ import pyinputplus
 import sys
 import time
 import math
-from playsound import playsound
 
 # BEXT REQUIREMENTS, for printing to the screen
 WIDTH, HEIGHT = bext.size()
@@ -915,11 +914,6 @@ def classic_mode():
 
 class SubsAndSilos():
 
-	def audio(type:str):
-		if type == "sub_launch":
-			playsound("sounds/sfx_exp_medium7.wav")
-
-
 	def display_map():
 		'''Display the map of the game'''
 		bext.clear()
@@ -984,29 +978,28 @@ class SubsAndSilos():
 				Draw.clear_console()
 				Draw.console("ERR: TARGET NOT IN PROXIMITY!")
 				time.sleep(2)
-		SubsAndSilos.audio("sub_launch")
 		return Missiles.ICBM_bresenham(countries[player_country]['subs'][0], target_coords)
 				
 	def action_move(subxy: tuple, direction: str, distance: int):
-		'''
-		Moves the submarine in the specified direction
-		returns the new x,y coordinates of the submarine if they are valid (ie in the ocean)
-		otherwise returns the False
-		'''
-		# validate that it is an ocean tile
-		if direction == "N":
-			moveto = (subxy[0], subxy[1] - distance)
-		elif direction == "S":
-			moveto = (subxy[0], subxy[1] + distance)
-		elif direction == "W":
-			moveto = (subxy[0] - distance, subxy[1])
-		elif direction == "E":
-			moveto = (subxy[0] + distance, subxy[1])
+			'''
+			Moves the submarine in the specified direction
+			returns the new x,y coordinates of the submarine if they are valid (ie in the ocean)
+			otherwise returns the False
+			'''
+			# validate that it is an ocean tile
+			if direction == "N":
+				moveto = (subxy[0], subxy[1] - distance)
+			elif direction == "S":
+				moveto = (subxy[0], subxy[1] + distance)
+			elif direction == "W":
+				moveto = (subxy[0] - distance, subxy[1])
+			elif direction == "E":
+				moveto = (subxy[0] + distance, subxy[1])
 
-		if Map.check_for_ocean(moveto[0], moveto[1]):
-			return moveto
-		else:
-			return False
+			if Map.check_for_ocean(moveto[0], moveto[1]):
+				return moveto
+			else:
+				return False
 
 	def search_for_subs(seeking_countries: list, search_coords: list):
 		sub_coords = []
