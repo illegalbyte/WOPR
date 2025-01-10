@@ -3,33 +3,11 @@
 # WOPR.py 
 #	> a text based game inspired by War Games 
 
-
-import os
 from random import randint, choice
-from typing import Collection
 import bext
 import pyinputplus
 import sys
-import time
-import math
 import a_star
-import game
-
-
-
-# TODO: dict of each country: 
-	# Each country has a unique pathfinding algo
-	# each country is assigned a colour
-	# each contry has a payload (area of effect)
-	# each country has a unique number of missiles
-	# some countries have nuclear submarines
-	# you can only view your own submarine and missile base locations
-	# have to guess where the other countries are
-	# friendly countries appear coloured in
-	# implemnent a DEFCON warning system
-	# the DEFCON system will affect other countries Hostility
-
-
 
 # BEXT REQUIREMENTS, for printing to the screen
 WIDTH, HEIGHT = bext.size()
@@ -88,13 +66,10 @@ countries = {
 			}
 }
 
-console_prompts = []
-
 # READ THE WORLD MAP AND STORE IN CONSTANT: WORLD_MAP
 from pprint import pprint as pp
 with open('WORLD_MAP.txt', 'r') as map:
 	WORLD_MAP = map.read()
-WORLD_MAP_GRAPH = WORLD_MAP.splitlines()
 
 # write to file
 def logfile(text, file):
@@ -116,7 +91,7 @@ def print_map(COLOUR: str, SPEED: float):
 			X = 0
 		sys.stdout.flush()
 
-class draw():
+class Draw():
 	def __init__(self) -> None:
 		pass
 
@@ -133,7 +108,7 @@ class draw():
 		for region in regions.values():
 			for country, target in region.items():
 				x, y = target
-				draw.draw_char(x, y, r'{X}', COLOUR='WHITE')
+				Draw.draw_char(x, y, r'{X}', COLOUR='WHITE')
 
 	# DRAWS RADIATION MARKER
 	def draw_fallout(STRIKE_X, STRIKE_Y, RADIUS=1, SPEED=0.003):
@@ -150,7 +125,7 @@ class draw():
 						continue
 					if y > HEIGHT:
 						continue
-					draw.draw_char(x, y, 'X', COLOUR='PURPLE')
+					Draw.draw_char(x, y, 'X', COLOUR='PURPLE')
 					time.sleep(SPEED)
 					theta += step
 				RADIUS -=1				
@@ -162,7 +137,7 @@ class draw():
 		X_COORD = pyinputplus.inputInt('ENTER X LOCTAION FOR FIRST STRIKE > ', min=0, max=154)
 		bext.goto(0, 52)
 		Y_COORD = pyinputplus.inputInt('ENTER Y LOCTAION FOR FIRST STRIKE > ', min=0, max=45)
-		draw.clear_lines(50, 56)
+		Draw.clear_lines(50, 56)
 		return (X_COORD, Y_COORD)
 
 	# write to the bottom console
@@ -173,7 +148,7 @@ class draw():
 			console_prompts.pop(0)
 		console_prompts.append(input)
 		# for each 
-		draw.clear_lines(50, 60)
+		Draw.clear_lines(50, 60)
 		for i, output in enumerate(console_prompts):
 			bext.goto(2, 50+i)
 			if type(output) == str:
@@ -187,7 +162,7 @@ class draw():
 		'''Shows a list of enemies and allies, as well as the player's country
 		Colour of country printed will change when it's status is False ie when it's destroyed'''
 		# clear the screen so that updated info can be displayed
-		draw.clear_to_edge(2, 30, 180)
+		Draw.clear_to_edge(2, 30, 180)
 
 		'''Takes the list of allies, enemies, and the player's country
 		and displays a list of them to the right of the map'''
@@ -255,7 +230,7 @@ class draw():
 		characters = list(map_lines[y])
 		return characters[x]
 
-class missiles():
+class Missiles():
 	'''A bunch of functions related to firing and drawing missiles'''
 	def __init__(self) -> None:
 		pass
@@ -268,26 +243,26 @@ class missiles():
 	def ICBM_gentle(STRIKE_X, STRIKE_Y, START_X=40, START_Y=17, ICON='X', COLOUR='PURPLE'):
 		while (START_X, START_Y) != (STRIKE_X, STRIKE_Y):
 
-			draw.draw_char(START_X, START_Y, ICON, COLOUR=COLOUR)
+			Draw.draw_char(START_X, START_Y, ICON, COLOUR=COLOUR)
 
 			START_X += randint(0,1)
 
 			# CALCULATES WHETHER A REDUCTION OR ADDITION TO X OR Y WILL CREATE THE NEW SHORTEST DISTANCE
-			NEW_SHORTEST_DIST = missiles.get_distance(START_X, START_Y + 1, STRIKE_X, STRIKE_Y)
-			if missiles.get_distance(START_X - 1, START_Y, STRIKE_X, STRIKE_Y) < NEW_SHORTEST_DIST:
-				NEW_SHORTEST_DIST = missiles.get_distance(START_X - 1, START_Y, STRIKE_X, STRIKE_Y)
-			if missiles.get_distance(START_X + 1, START_Y, STRIKE_X, STRIKE_Y) < NEW_SHORTEST_DIST:
-				NEW_SHORTEST_DIST = missiles.get_distance(START_X + 1, START_Y, STRIKE_X, STRIKE_Y)
-			if missiles.get_distance(START_X, START_Y - 1, STRIKE_X, STRIKE_Y) < NEW_SHORTEST_DIST:
-				NEW_SHORTEST_DIST = missiles.get_distance(START_X, START_Y - 1, STRIKE_X, STRIKE_Y)
+			NEW_SHORTEST_DIST = Missiles.get_distance(START_X, START_Y + 1, STRIKE_X, STRIKE_Y)
+			if Missiles.get_distance(START_X - 1, START_Y, STRIKE_X, STRIKE_Y) < NEW_SHORTEST_DIST:
+				NEW_SHORTEST_DIST = Missiles.get_distance(START_X - 1, START_Y, STRIKE_X, STRIKE_Y)
+			if Missiles.get_distance(START_X + 1, START_Y, STRIKE_X, STRIKE_Y) < NEW_SHORTEST_DIST:
+				NEW_SHORTEST_DIST = Missiles.get_distance(START_X + 1, START_Y, STRIKE_X, STRIKE_Y)
+			if Missiles.get_distance(START_X, START_Y - 1, STRIKE_X, STRIKE_Y) < NEW_SHORTEST_DIST:
+				NEW_SHORTEST_DIST = Missiles.get_distance(START_X, START_Y - 1, STRIKE_X, STRIKE_Y)
 			# CHOSES THE +/- X OR +/- Y WHICH CREATES THE NEW SHORTEST DISTANCE
-			if missiles.get_distance(START_X, START_Y + 1, STRIKE_X, STRIKE_Y) == NEW_SHORTEST_DIST:
+			if Missiles.get_distance(START_X, START_Y + 1, STRIKE_X, STRIKE_Y) == NEW_SHORTEST_DIST:
 				START_Y += 1
-			elif missiles.get_distance(START_X - 1, START_Y, STRIKE_X, STRIKE_Y) == NEW_SHORTEST_DIST:
+			elif Missiles.get_distance(START_X - 1, START_Y, STRIKE_X, STRIKE_Y) == NEW_SHORTEST_DIST:
 				START_X -= 1
-			elif missiles.get_distance(START_X + 1, START_Y, STRIKE_X, STRIKE_Y) == NEW_SHORTEST_DIST:
+			elif Missiles.get_distance(START_X + 1, START_Y, STRIKE_X, STRIKE_Y) == NEW_SHORTEST_DIST:
 				START_X += 1
-			elif missiles.get_distance(START_X, START_Y - 1, STRIKE_X, STRIKE_Y) == NEW_SHORTEST_DIST:
+			elif Missiles.get_distance(START_X, START_Y - 1, STRIKE_X, STRIKE_Y) == NEW_SHORTEST_DIST:
 				START_Y -= 1
 
 			time.sleep(REFRESH_RATE)
@@ -304,7 +279,7 @@ class missiles():
 				x_delta = x_height / y_height
 				y_delta = 1
 				for i in range(y_height):
-					draw.draw_char(START_X+x_delta, START_Y+y_delta, '🌞', 'PURPLE')
+					Draw.draw_char(START_X+x_delta, START_Y+y_delta, '🌞', 'PURPLE')
 					time.sleep(0.2)
 					START_X += x_delta
 					START_Y += y_delta
@@ -312,7 +287,7 @@ class missiles():
 				x_delta = 1
 				y_delta = y_height / x_height
 				for i in range(x_height):
-					draw.draw_char(START_X+x_delta, START_Y+y_delta, '🌞', 'PURPLE')
+					Draw.draw_char(START_X+x_delta, START_Y+y_delta, '🌞', 'PURPLE')
 					time.sleep(0.2)
 					START_X += x_delta
 					START_Y += y_delta
@@ -324,7 +299,7 @@ class missiles():
 			WORLD_MAP_GRAPH, [START_X, START_Y], [STRIKE_X, STRIKE_Y])
 		for coordinate in shortest_path:
 			x, y = coordinate
-			draw.draw_char(x, y, 'X', COLOUR='PURPLE')
+			Draw.draw_char(x, y, 'X', COLOUR='PURPLE')
 			time.sleep(0.02)
 
 	# launches the missiles in an angled diagonal line
@@ -340,7 +315,7 @@ class missiles():
 
 		# if the horizontal distance is < 4, use the gentle algo instead
 		if (abs(START_X - STRIKE_X) < 4):
-			missiles.ICBM_gentle(STRIKE_X, STRIKE_Y, START_X, START_Y)
+			Missiles.ICBM_gentle(STRIKE_X, STRIKE_Y, START_X, START_Y)
 		else:
 			# if the destination is to the right of the start/launch site
 			if STRIKE_X > START_X:
@@ -349,34 +324,34 @@ class missiles():
 				for x in range(START_X, STRIKE_X):
 					# stores original x,y and the character originally on the map at that x,y
 					prev_xy = [x, START_Y]
-					prev_char = draw.get_original_character(prev_xy[0], round(prev_xy[1]))
+					prev_char = Draw.get_original_character(prev_xy[0], round(prev_xy[1]))
 					# print the missile location
-					draw.draw_char(x, START_Y, ICON, COLOUR=COL)
+					Draw.draw_char(x, START_Y, ICON, COLOUR=COL)
 					START_Y += slope
 					time.sleep(REFRESH_RATE)
 					# draw the previous character to clear the missile path
-					draw.draw_char(prev_xy[0], prev_xy[1], prev_char, COLOUR='GREEN')
+					Draw.draw_char(prev_xy[0], prev_xy[1], prev_char, COLOUR='GREEN')
 			# if the destination is to the left
 			elif STRIKE_X < START_X:
 				prev_xy = []
 				for x in range(START_X-STRIKE_X):
 					# stores original x,y and the character originally on the map at that x,y
 					prev_xy = [START_X-x, START_Y]
-					prev_char = draw.get_original_character(prev_xy[0], round(prev_xy[1]))
+					prev_char = Draw.get_original_character(prev_xy[0], round(prev_xy[1]))
 					# draw the new missile location
-					draw.draw_char(START_X-x, START_Y, ICON, COLOUR=COL)
+					Draw.draw_char(START_X-x, START_Y, ICON, COLOUR=COL)
 					START_Y -= slope
 					time.sleep(REFRESH_RATE)
 					# draw the previous character to clear the missile path
-					draw.draw_char(prev_xy[0], prev_xy[1], prev_char, COLOUR='GREEN')
+					Draw.draw_char(prev_xy[0], prev_xy[1], prev_char, COLOUR='GREEN')
 			
 
-		draw.draw_char(STRIKE_X, STRIKE_Y-1, '🌞')
+		Draw.draw_char(STRIKE_X, STRIKE_Y-1, '🌞')
 
 	def simultanious_launch(number_of_launches):
 		launch_coords = [] # list of tuples (x, y)
 		while number_of_launches > 0: 
-			launch_coords.append(draw.ask_for_coordinates())
+			launch_coords.append(Draw.ask_for_coordinates())
 			number_of_launches -= 1
 		
 		return launch_coords
@@ -392,23 +367,23 @@ class missiles():
 		# Slope formula y2-y1 / x2-x1
 		slope = (STRIKE_Y - START_Y) / (STRIKE_X - START_X)
 		# this is the range we need to iterate over when drawing the animation
-		distance = round(missiles.get_distance(START_X, START_Y, STRIKE_X, STRIKE_Y))
+		distance = round(Missiles.get_distance(START_X, START_Y, STRIKE_X, STRIKE_Y))
 		# if the destination is to the right of the start/launch site
 		if STRIKE_X > START_X:
 			# iterate over the distance that has to be travelled
 			for x in range(distance+START_X, distance+STRIKE_X):
-				draw.draw_char(x, START_Y, ICON, COLOUR=COL)
+				Draw.draw_char(x, START_Y, ICON, COLOUR=COL)
 				START_Y += slope
 				time.sleep(REFRESH_RATE)
 		# if the destination is to the left
 		elif STRIKE_X < START_X:
 		
 			for x in range(distance+STRIKE_X, distance+START_X):
-				draw.draw_char(START_X-x, START_Y, ICON, COLOUR=COL)
+				Draw.draw_char(START_X-x, START_Y, ICON, COLOUR=COL)
 				START_Y -= slope
 				time.sleep(REFRESH_RATE)
 
-class weapons:
+class Weapons:
 	def __init__(self, xy: tuple, missiles: int, status: bool, country: str, base_icon='@'):
 		self.xy = xy
 		self.missiles = missiles
@@ -422,31 +397,31 @@ class weapons:
 			color = 'WHITE'
 		else:
 			color = 'RED'
-		draw.draw_char(x, y, self.base_icon, COLOUR=color)
+		Draw.draw_char(x, y, self.base_icon, COLOUR=color)
 
-class silo(weapons):
+class Silo(Weapons):
 	pass
 
-class submarine(silo):
+class Submarine(Silo):
 	def move(self, x2, y2):
 		# move the submarine
 		# check that the next path is empty
-		if draw.get_original_character(x2, y2) != ' ' \
-		or draw.get_original_character(x2-1, y2-1) != ' ' \
-		or draw.get_original_character(x2+1, y2+1) != ' ' \
-		or draw.get_original_character(x2-1, y2+2) != ' ' \
-		or draw.get_original_character(x2+1, y2-2) != ' ': 
-			draw.console(f'SUBMARINE COLISION AT X: {x2} Y: {y2}')
+		if Draw.get_original_character(x2, y2) != ' ' \
+		or Draw.get_original_character(x2-1, y2-1) != ' ' \
+		or Draw.get_original_character(x2+1, y2+1) != ' ' \
+		or Draw.get_original_character(x2-1, y2+2) != ' ' \
+		or Draw.get_original_character(x2+1, y2-2) != ' ': 
+			Draw.console(f'SUBMARINE COLISION AT X: {x2} Y: {y2}')
 		else:
 			# clear current position (draw the original map tile)
-			draw.draw_char(self.xy[0], self.xy[1], CHAR=draw.get_original_character(self.xy[0],self.xy[1]))
+			Draw.draw_char(self.xy[0], self.xy[1], CHAR=Draw.get_original_character(self.xy[0],self.xy[1]))
 			# move the submarine
 			self.xy = (x2, y2)
 			# draw at new position:
 			self.draw_base()
 			return self.xy
 
-class defcon():
+class Defcon():
 	
 
 	defcon = [0,1,2,3,4,5]
@@ -463,18 +438,18 @@ class defcon():
 			  "#################"]
 		# draw each line of the box
 		for y, line in enumerate(box):
-			draw.draw_char(170, y+2, line, COLOUR='YELLOW')
+			Draw.draw_char(170, y+2, line, COLOUR='YELLOW')
 
 			if defcon_status == 5:
-				draw.draw_char(175, 7, f'DEFCON {defcon.defcon_status}')
+				Draw.draw_char(175, 7, f'DEFCON {Defcon.defcon_status}')
 			elif defcon_status == 4:
-				draw.draw_char(175, 6, f'DEFCON {defcon.defcon_status}')
+				Draw.draw_char(175, 6, f'DEFCON {Defcon.defcon_status}')
 			elif defcon_status == 3:
-				draw.draw_char(175, 5, f'DEFCON {defcon.defcon_status}')
+				Draw.draw_char(175, 5, f'DEFCON {Defcon.defcon_status}')
 			elif defcon_status == 2:
-				draw.draw_char(175, 4, f'DEFCON {defcon.defcon_status}')
+				Draw.draw_char(175, 4, f'DEFCON {Defcon.defcon_status}')
 			elif defcon_status == 1:
-				draw.draw_char(175, 3, f'DEFCON {defcon.defcon_status}')
+				Draw.draw_char(175, 3, f'DEFCON {Defcon.defcon_status}')
 
 
 def game(scenario='autofire'):
@@ -486,7 +461,7 @@ def game(scenario='autofire'):
 		console_prompts = []
 
 		# draw silos on top of map
-		draw.draw_targets(regions)
+		Draw.draw_targets(regions)
 
 		# add targets to a list
 		targets = []
@@ -495,12 +470,12 @@ def game(scenario='autofire'):
 				targets.append(target)
 		
 		# set initial defcon to 5
-		defcon.defcon_status = 5
+		Defcon.defcon_status = 5
 		# LOOP: until all targets are eliminated
 		while len(targets) != 0:
 
 			# print the defcon status before the shot
-			defcon.display(defcon.defcon_status)
+			Defcon.display(Defcon.defcon_status)
 
 			# the counrty which launches an icbm
 			start = choice(targets)
@@ -514,12 +489,12 @@ def game(scenario='autofire'):
 			x1, y1 = start
 			x2, y2 = strike
 
-			missiles.ICBM_diag(x1, y1, x2, y2, ICON='@', REFRESH_RATE=0.09)
-			draw.draw_fallout(x2, y2, 2, SPEED=0.0009)
+			Missiles.ICBM_diag(x1, y1, x2, y2, ICON='@', REFRESH_RATE=0.09)
+			Draw.draw_fallout(x2, y2, 2, SPEED=0.0009)
 
-			if defcon.defcon_status != 1:
-				defcon.defcon_status -= 1
-			defcon.display(defcon.defcon_status)
+			if Defcon.defcon_status != 1:
+					Defcon.defcon_status -= 1
+			Defcon.display(Defcon.defcon_status)
 
 			# print remaining countries by name:
 			remaining_countries = []
@@ -527,11 +502,11 @@ def game(scenario='autofire'):
 				for country, target in region.items():
 					if target in targets:
 						remaining_countries.append(country)
-			draw.console(f"REMAINING COUNTRIES >> {' '.join(remaining_countries)}")
+			Draw.console(f"REMAINING COUNTRIES >> {' '.join(remaining_countries)}")
 
 			time.sleep(1)
 			if len(targets) == 1:
-				draw.console(f' > WINNER: {remaining_countries[0]}')
+				Draw.console(f' > WINNER: {remaining_countries[0]}')
 				time.sleep(3)
 				break
 
@@ -580,12 +555,12 @@ def game(scenario='autofire'):
 					enemies.append(country)
 
 			# make a copy the original allies and enemies
-			# so that it can be used in the draw.playerlist function
+			# so that it can be used in the Draw.playerlist function
 			original_allies = allies.copy()
 			original_enemies = enemies.copy()
 
 			# display the box of enemies and allies
-			draw.player_list(allies, enemies, player_country)
+			Draw.player_list(allies, enemies, player_country)
 
 			# draw ally bases 
 			def draw_bases():
@@ -605,7 +580,7 @@ def game(scenario='autofire'):
 			def playermove():
 				'''Ask the player what countries it should target'''
 				# clear bottom text area
-				draw.clear_lines(48, HEIGHT)
+				Draw.clear_lines(48, HEIGHT)
 				bext.goto(0, 48)
 
 				# if there is more than 1 enemy, ask the user which country to target
@@ -619,8 +594,8 @@ def game(scenario='autofire'):
 				strike_x = countries[target]['location'][0]
 				strike_y = countries[target]['location'][1]
 			
-				missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
-				draw.draw_fallout(strike_x, strike_y, RADIUS=1)
+				Missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
+				Draw.draw_fallout(strike_x, strike_y, RADIUS=1)
 
 				# remove country from list of targettable enemies
 				enemies.remove(target)
@@ -659,8 +634,8 @@ def game(scenario='autofire'):
 				elif target == player_country:
 					countries[target]['status'] = False
 
-				missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
-				draw.draw_fallout(strike_x, strike_y, RADIUS=1)
+				Missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
+				Draw.draw_fallout(strike_x, strike_y, RADIUS=1)
 				draw_bases()
 			
 			def base_message(text: str, country: str):
@@ -681,13 +656,13 @@ def game(scenario='autofire'):
 			turn = 1
 			while len(enemies) != 0 and (countries[player_country]['status'] == True):
 				draw_bases()
-				draw.player_list(original_allies, original_enemies, player_country)
+				Draw.player_list(original_allies, original_enemies, player_country)
 				if turn % 2 == 0 and countries[player_country]['status'] == True:
 					automove()
 				else:
 					playermove()
 				turn += 1
-				draw.player_list(original_allies, original_enemies, player_country)
+				Draw.player_list(original_allies, original_enemies, player_country)
 
 			if countries[player_country]['status'] == False:
 				base_message(f'YOU LOST IN {turn} TURNS, RESTARTING IN 10s', player_country)
@@ -700,9 +675,9 @@ def game(scenario='autofire'):
 
 
 
-washington = silo((31,13), 10, True, country='USA')
-berlin = silo((94,9), 10, True, country='Germany')
-arch1 = submarine((100,37), missiles=2, status=True, country='USA', base_icon='🛥')
+washington = Silo((31,13), 10, True, country='USA')
+berlin = Silo((94,9), 10, True, country='Germany')
+arch1 = Submarine((100,37), missiles=2, status=True, country='USA', base_icon='🛥')
 
 
 
