@@ -7,6 +7,7 @@ import sys
 import time
 import math
 import a_star
+import ast
 
 # BEXT REQUIREMENTS, for printing to the screen
 WIDTH, HEIGHT = bext.size()
@@ -139,7 +140,7 @@ class Draw():
 		sys.stdout.flush()
 
 	def draw_targets(regions: dict):
-		 """
+		"""
 		Draw targets for each region.
 
 		Args:
@@ -151,7 +152,7 @@ class Draw():
 				Draw.draw_char(x, y, r'{X}', COLOUR='WHITE')
 	
 	def draw_fallout_old(STRIKE_X, STRIKE_Y, RADIUS=2, SPEED=0.03, COLOUR="PURPLE", CHAR="X"):
-		 """
+		"""
 		Draw radiation circle.
 
 		Args:
