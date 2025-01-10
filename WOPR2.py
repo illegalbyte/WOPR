@@ -94,10 +94,32 @@ sys.setrecursionlimit(len(WORLD_MAP_GRAPH)*len(WORLD_MAP_GRAPH[0])*2)
 
 
 class utility():
+	"""
+	Utility class containing helper functions for the game.
+	"""
+
 	def removeDuplicates(lst):
+		"""
+		Remove duplicates from a list.
+
+		Args:
+			lst (list): The list from which duplicates need to be removed.
+
+		Returns:
+			list: A list with duplicates removed.
+		"""
 		return list(set([i for i in lst]))
 
 	def reverse_lookup_submarine(submarine: tuple) -> str:
+		"""
+		Reverse lookup to find the country of a submarine.
+
+		Args:
+			submarine (tuple): The coordinates of the submarine.
+
+		Returns:
+			str: The country to which the submarine belongs.
+		"""
 		for country in countries:
 			if countries[country]['subs']:
 				if submarine in countries[country]['subs']:
@@ -105,24 +127,49 @@ class utility():
 
 
 class draw():
+	"""
+	Class containing functions for drawing on the game map.
+	"""
 
 	def draw_char(X, Y, CHAR: str, COLOUR='RED'):
-		# DRAWS A CHARACTER AT A SPECIFIC LOCATION
+		"""
+		Draw a character at a specific location.
+
+		Args:
+			X (int): The x-coordinate.
+			Y (int): The y-coordinate.
+			CHAR (str): The character to be drawn.
+			COLOUR (str): The color of the character.
+		"""
 		bext.goto(round(X), round(Y))
 		bext.fg(COLOUR)
 		print(f'{CHAR}', end='')
 		sys.stdout.flush()
 
 	def draw_targets(regions: dict):
-		'''DRAWS TARGETS FOR EACH REGION'''
+		 """
+		Draw targets for each region.
+
+		Args:
+			regions (dict): Dictionary containing regions and their targets.
+		"""
 		for region in regions.values():
 			for country, target in region.items():
 				x, y = target
 				draw.draw_char(x, y, r'{X}', COLOUR='WHITE')
 	
 	def draw_fallout_old(STRIKE_X, STRIKE_Y, RADIUS=2, SPEED=0.03, COLOUR="PURPLE", CHAR="X"):
-		'''DRAWS RADIATION CIRCLE'''
-		# https://www.mathopenref.com/coordcirclealgorithm.html
+		 """
+		Draw radiation circle.
+
+		Args:
+			STRIKE_X (int): The x-coordinate of the strike.
+			STRIKE_Y (int): The y-coordinate of the strike.
+			RADIUS (int): The radius of the fallout.
+			SPEED (float): The speed of drawing the fallout.
+			COLOUR (str): The color of the fallout.
+			CHAR (str): The character representing the fallout.
+		"""
 		while RADIUS != 0:
 			theta = 0
 			h = STRIKE_X
@@ -141,6 +188,19 @@ class draw():
 			RADIUS -=1
 
 	def draw_fallout(target: tuple, RADIUS=2, SPEED=0.03, COLOUR="Green", CHAR="X"):
+		"""
+		Draw fallout around a target.
+
+		Args:
+			target (tuple): The coordinates of the target.
+			RADIUS (int): The radius of the fallout.
+			SPEED (float): The speed of drawing the fallout.
+			COLOUR (str): The color of the fallout.
+			CHAR (str): The character representing the fallout.
+
+		Returns:
+			list: List of coordinates affected by the fallout.
+		"""
 		circles_drawn = 0
 		fallout_coords = []
 		while circles_drawn < RADIUS+1:
@@ -154,89 +214,83 @@ class draw():
 		return fallout_coords
 
 	def draw_circle(X, Y, RADIUS, COLOUR='RED', CHAR="X", erase_map_tiles=False, radius_modifier=2, visible=True) -> list:
-		'''
-		Draws a hollow circle around the X, Y coords with specific RADIUS
-		By default, the circle's perimeter will not draw over any spaces which are not blank in the WORLD_MAP matrix 
+		"""
+		Draw a hollow circle around a specific location.
 
-		--> raiud_modifier: divide the height of the circle by this number, so that it appears normally in terminals where the height of a char is usually 2x the width
+		Args:
+			X (int): The x-coordinate of the center.
+			Y (int): The y-coordinate of the center.
+			RADIUS (int): The radius of the circle.
+			COLOUR (str): The color of the circle.
+			CHAR (str): The character representing the circle.
+			erase_map_tiles (bool): Whether to erase map tiles.
+			radius_modifier (int): Modifier for the radius.
+			visible (bool): Whether the circle is visible.
 
-		Returns a list of the coords of the perimiter of the circle
-		'''
-		# https://www.mathopenref.com/coordcirclealgorithm.html
-		'''DRAWS A HOLLOW CIRCLE AROUND A SPECIFIC LOCATION
-			Returns a list of the coordinates of the circle'''
-			# TODO: separate the drawing of the circle from getting the coordinates
+		Returns:
+			list: List of coordinates of the circle's perimeter.
+		"""
 		circle = []
 		theta = 0
 		step = 2*math.pi/2000
 		while theta <= 2*math.pi:
-			# make circle twice as wide as it is tall
 			x = X + RADIUS*math.cos(theta)
-			y = Y - (RADIUS/radius_modifier)*math.sin(theta) # radius / 2 because the circle is drawn twice as wide as it is tall
+			y = Y - (RADIUS/radius_modifier)*math.sin(theta)
 			if x > 152:
 				x = x - 152
-			if x < 0: # prevent the circle from going off the screen, and wrap around
+			if x < 0:
 				x = x + 152
 			if y > 45:
 				theta += step
 				continue
-			if draw.get_original_character(x, y) == ' ': # prevents drawing on top of map tiles
+			if draw.get_original_character(x, y) == ' ':
 				if visible:
 					draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
-				if (round(x), round(y)) not in circle: # prevents duplicate x, y coords being added due to decimal differences
+				if (round(x), round(y)) not in circle:
 					circle.append((round(x), round(y)))	
-			elif erase_map_tiles: # if we don't care about the map tiles, draw over them
+			elif erase_map_tiles:
 				if visible:
 					draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
-				if (round(x), round(y)) not in circle: # prevents duplicate x, y coords being added due to decimal differences
+				if (round(x), round(y)) not in circle:
 					circle.append((round(x), round(y)))	
 			theta += step
 
 		return circle
 
 	def get_line(start: tuple, end: tuple) -> list:
-		"""Bresenham's Line Algorithm
-		http://www.roguebasin.com/index.php/Bresenham%27s_Line_Algorithm#Python
-		Produces a list of tuples from start and end
-
-		>>> points1 = get_line((0, 0), (3, 4))
-		>>> points2 = get_line((3, 4), (0, 0))
-		>>> assert(set(points1) == set(points2))
-		>>> print points1
-		[(0, 0), (1, 1), (1, 2), (2, 3), (3, 4)]
-		>>> print points2
-		[(3, 4), (2, 3), (1, 2), (1, 1), (0, 0)]
 		"""
-		# Setup initial conditions
+		Generate a list of points forming a line between two coordinates.
+
+		Args:
+			start (tuple): The starting coordinates.
+			end (tuple): The ending coordinates.
+
+		Returns:
+			list: List of points forming the line.
+		"""
 		x1, y1 = start
 		x2, y2 = end
 		dx = x2 - x1
 		dy = y2 - y1
 
-		# Determine how steep the line is
 		is_steep = abs(dy) > abs(dx)
 
-		# Rotate line
 		if is_steep:
 			x1, y1 = y1, x1
 			x2, y2 = y2, x2
 
-		# Swap start and end points if necessary and store swap state
 		swapped = False
 		if x1 > x2:
 			x1, x2 = x2, x1
 			y1, y2 = y2, y1
 			swapped = True
 
-		# Recalculate differentials
 		dx = x2 - x1
 		dy = y2 - y1
 
-		# Calculate error
 		error = int(dx / 2.0)
 		ystep = 1 if y1 < y2 else -1
 
-		# Iterate over bounding box generating points between start and end
 		y = y1
 		points = []
 		for x in range(x1, x2 + 1):
@@ -247,20 +301,31 @@ class draw():
 				y += ystep
 				error += dx
 
-		# Reverse the list if the coordinates were swapped
 		if swapped:
 			points.reverse()
 		return points
 
 	def draw_line(x1, y1, x2, y2, COLOUR='RED', ocean_only=True) -> list:
-		'''draws a line between two points – returns a list of all the coords that were drawn'''
+		"""
+		Draw a line between two points.
+
+		Args:
+			x1 (int): The x-coordinate of the starting point.
+			y1 (int): The y-coordinate of the starting point.
+			x2 (int): The x-coordinate of the ending point.
+			y2 (int): The y-coordinate of the ending point.
+			COLOUR (str): The color of the line.
+			ocean_only (bool): Whether to draw only on ocean tiles.
+
+		Returns:
+			list: List of coordinates of the line.
+		"""
 		points = draw.get_line((round(x1), round(y1)), (round(x2), round(y2)))
 		valid_points = []
 		for point in points:
 			x, y = point
-			if x > 152: # prevent the line from going off the screen, and wrap around
+			if x > 152:
 				continue
-			# check if ocean tile
 			if ocean_only and not map.check_for_ocean(x,y):
 				continue
 			draw.draw_char(x, y, 'X', COLOUR=COLOUR)
@@ -268,10 +333,15 @@ class draw():
 		return valid_points
 
 	def ask_for_coordinates() -> tuple:
-		'''prints dialogue at the bottom which asks for coordinates and returns a tuple of the (x, y)'''
+		"""
+		Ask for coordinates from the user.
+
+		Returns:
+			tuple: The coordinates entered by the user.
+		"""
 		draw.clear_console()
 		bext.fg('RED')
-		x_coord = "0" # placeholder val so we can start a while loop below
+		x_coord = "0"
 		while not x_coord.isalpha() or len(x_coord) != 1:
 			bext.goto(0, 50)
 			x_coord = pyinputplus.inputStr('ENTER X LOCTAION [A,B,C...] > ')
@@ -288,13 +358,16 @@ class draw():
 		return (x_coord, y_coord)
 
 	def console(input):
-		'''write to the bottom console'''
+		"""
+		Write to the bottom console.
+
+		Args:
+			input (str): The input to be written to the console.
+		"""
 		bext.fg('RED')
-		# ensures console the prompts don't print past the height of terminal
 		if len(console_prompts) > 9:
 			console_prompts.pop(0)
 		console_prompts.append(input)
-		# for each 
 		draw.clear_lines(50, 60)
 		for i, output in enumerate(console_prompts):
 			bext.goto(2, 50+i)
@@ -306,16 +379,18 @@ class draw():
 		sys.stdout.flush()
 
 	def player_list(allies:list, enemies:list, player:str):
-		'''Shows a list of enemies and allies, as well as the player's country
-		Colour of country printed will change when it's status is False ie when it's destroyed'''
-		# clear the screen so that updated info can be displayed
+		"""
+		Show a list of enemies and allies, as well as the player's country.
+
+		Args:
+			allies (list): List of allies.
+			enemies (list): List of enemies.
+			player (str): The player's country.
+		"""
 		draw.clear_to_edge(2, 30, 180)
 
-		'''Takes the list of allies, enemies, and the player's country
-		and displays a list of them to the right of the map'''
 		disabled_colour = 'yellow'
 
-		# print the list of allies
 		bext.fg('reset')
 		bext.goto(180,2)
 		print('##############')
@@ -331,7 +406,6 @@ class draw():
 			print(ally)
 			bext.fg('RESET')
 
-		# print the list of enemies
 		bext.fg('reset')
 		bext.goto(195,2)
 		print('##############')
@@ -347,7 +421,6 @@ class draw():
 			print(enemy)
 			bext.fg('RESET')
 
-		# prints the player's country at the bottom of the map
 		bext.goto(60,47)
 		bext.fg('BLACK')
 		bext.bg('YELLOW')
@@ -356,39 +429,72 @@ class draw():
 		bext.bg('reset')
 
 	def clear_lines(Y_START, Y_END):
-		'''CLEARES A RANGE OF LINES, USED FOR TEXT ENTRY AT BOTTOM OF SCREEN'''
+		"""
+		Clear a range of lines.
+
+		Args:
+			Y_START (int): The starting y-coordinate.
+			Y_END (int): The ending y-coordinate.
+		"""
 		for y in range(Y_START, Y_END):
 			for x in range(WIDTH):
 				bext.goto(x, y)
 				print(' ', end='')
 
 	def clear_console():
+		"""
+		Clear the console.
+		"""
 		draw.clear_lines(48, HEIGHT)
 		bext.fg('reset')
 		bext.bg('reset')
 		bext.goto(0, 48)
 	
 	def clear_screen():
+		"""
+		Clear the entire screen.
+		"""
 		draw.clear_to_edge(0, bext.height(), 0)
 
 	def clear_to_edge(y_start, y_end, x_start):
-		'''Clears lines from x to the right end of the screen (ie the right edge)'''
+		"""
+		Clear lines from x to the right end of the screen.
+
+		Args:
+			y_start (int): The starting y-coordinate.
+			y_end (int): The ending y-coordinate.
+			x_start (int): The starting x-coordinate.
+		"""
 		for y in range(y_start, y_end):
 			for x in range(x_start, WIDTH):
 				bext.goto(x, y)
 				print(' ', end='')
 
 	def get_original_character(x,y):
-		'''For re-printing the previous character and keeping the map in tact
-		takes an x,y and returns the original character from the original map
-		assumes that WORLD_MAP variable has not changed from initial state'''
+		"""
+		Get the original character from the map.
+
+		Args:
+			x (int): The x-coordinate.
+			y (int): The y-coordinate.
+
+		Returns:
+			str: The original character at the specified coordinates.
+		"""
 		map_lines = WORLD_MAP.splitlines()
 		characters = list(map_lines[round(y)])
 
 		return characters[round(x)] 
 
 	def ocean(x1, x2, y):
-		'''Draws an ocean between two points'''
+		"""
+		Draw an ocean between two points.
+
+		Args:
+			x1 (int): The starting x-coordinate.
+			x2 (int): The ending x-coordinate.
+			y (int): The y-coordinate.
+		"""
 		for x in range(x1, x2):
 			bext.goto(x, y)
 			bext.bg('BLUE')
@@ -397,10 +503,20 @@ class draw():
 
 
 class Submarine:
+	"""
+	Class representing a submarine.
+	"""
 	allies = []
 	enemies = []
 
 	def __init__(self, xy: tuple, country: str):
+		"""
+		Initialize a submarine.
+
+		Args:
+			xy (tuple): The coordinates of the submarine.
+			country (str): The country to which the submarine belongs.
+		"""
 		self.country = country
 		self.coords = xy
 		self.status = True
@@ -409,21 +525,43 @@ class Submarine:
 
 
 class missiles():
-	'''A bunch of functions related to firing and drawing missiles'''
-	
+	"""
+	Class containing functions related to firing and drawing missiles.
+	"""
+
 	def get_distance(x1: int, y1: int, x2: int , y2: int) -> int:
-		'''Returns the distance between two x,y coordinates'''
+		"""
+		Calculate the distance between two coordinates.
+
+		Args:
+			x1 (int): The x-coordinate of the first point.
+			y1 (int): The y-coordinate of the first point.
+			x2 (int): The x-coordinate of the second point.
+			y2 (int): The y-coordinate of the second point.
+
+		Returns:
+			int: The distance between the two points.
+		"""
 		return math.hypot(x2-x1, y2-y1)
 	
 	def ICBM_gentle(STRIKE_X, STRIKE_Y, START_X=40, START_Y=17, ICON='X', COLOUR='PURPLE'):
-		'''this path algo launches a missile in a line and then when it is at a ~40° angle it will move diagonally towards target'''
+		"""
+		Launch a missile in a line and then move diagonally towards the target.
+
+		Args:
+			STRIKE_X (int): The x-coordinate of the strike.
+			STRIKE_Y (int): The y-coordinate of the strike.
+			START_X (int): The starting x-coordinate.
+			START_Y (int): The starting y-coordinate.
+			ICON (str): The icon representing the missile.
+			COLOUR (str): The color of the missile.
+		"""
 		while (START_X, START_Y) != (STRIKE_X, STRIKE_Y):
 
 			draw.draw_char(START_X, START_Y, ICON, COLOUR=COLOUR)
 
 			START_X += randint(0,1)
 
-			# CALCULATES WHETHER A REDUCTION OR ADDITION TO X OR Y WILL CREATE THE NEW SHORTEST DISTANCE
 			NEW_SHORTEST_DIST = missiles.get_distance(START_X, START_Y + 1, STRIKE_X, STRIKE_Y)
 			if missiles.get_distance(START_X - 1, START_Y, STRIKE_X, STRIKE_Y) < NEW_SHORTEST_DIST:
 				NEW_SHORTEST_DIST = missiles.get_distance(START_X - 1, START_Y, STRIKE_X, STRIKE_Y)
@@ -431,7 +569,6 @@ class missiles():
 				NEW_SHORTEST_DIST = missiles.get_distance(START_X + 1, START_Y, STRIKE_X, STRIKE_Y)
 			if missiles.get_distance(START_X, START_Y - 1, STRIKE_X, STRIKE_Y) < NEW_SHORTEST_DIST:
 				NEW_SHORTEST_DIST = missiles.get_distance(START_X, START_Y - 1, STRIKE_X, STRIKE_Y)
-			# CHOSES THE +/- X OR +/- Y WHICH CREATES THE NEW SHORTEST DISTANCE
 			if missiles.get_distance(START_X, START_Y + 1, STRIKE_X, STRIKE_Y) == NEW_SHORTEST_DIST:
 				START_Y += 1
 			elif missiles.get_distance(START_X - 1, START_Y, STRIKE_X, STRIKE_Y) == NEW_SHORTEST_DIST:
@@ -444,54 +581,61 @@ class missiles():
 			time.sleep(REFRESH_RATE)
 
 	def ICBM_diag(START_X, START_Y, STRIKE_X, STRIKE_Y, COL='PURPLE', ICON='🌞', REFRESH_RATE=REFRESH_RATE):
-		'''launches the missiles in an angled diagonal line'''
-		# to prevent divide by 0 errors when calculating slope:
+		"""
+		Launch a missile in an angled diagonal line.
+
+		Args:
+			START_X (int): The starting x-coordinate.
+			START_Y (int): The starting y-coordinate.
+			STRIKE_X (int): The x-coordinate of the strike.
+			STRIKE_Y (int): The y-coordinate of the strike.
+			COL (str): The color of the missile.
+			ICON (str): The icon representing the missile.
+			REFRESH_RATE (float): The speed of the missile.
+		"""
 		if STRIKE_X == START_X:
 			STRIKE_X += 1
 		elif STRIKE_Y == STRIKE_Y:
 			STRIKE_Y += 1
-		# Slope formula y2-y1 / x2-x1
 		slope = (STRIKE_Y - START_Y) / (STRIKE_X - START_X)
 
-		# if the horizontal distance is < 4, use the gentle algo instead
 		if (abs(START_X - STRIKE_X) < 4):
 			missiles.ICBM_gentle(STRIKE_X, STRIKE_Y, START_X, START_Y)
 		else:
-			# if the destination is to the right of the start/launch site
 			if STRIKE_X > START_X:
-				# xy of prev character for omitting the missile paths
 				prev_xy = []
 				for x in range(START_X, STRIKE_X):
-					# stores original x,y and the character originally on the map at that x,y
 					prev_xy = [x, START_Y]
 					prev_char = draw.get_original_character(prev_xy[0], round(prev_xy[1]))
-					# print the missile location
 					draw.draw_char(x, START_Y, ICON, COLOUR=COL)
 					START_Y += slope
 					time.sleep(REFRESH_RATE)
-					# draw the previous character to clear the missile path
 					draw.draw_char(prev_xy[0], prev_xy[1], prev_char, COLOUR='YELLOW')
-			# if the destination is to the left
 			elif STRIKE_X < START_X:
 				prev_xy = []
 				for x in range(START_X-STRIKE_X):
-					# stores original x,y and the character originally on the map at that x,y
 					prev_xy = [START_X-x, START_Y]
 					prev_char = draw.get_original_character(prev_xy[0], round(prev_xy[1]))
-					# draw the new missile location
 					draw.draw_char(START_X-x, START_Y, ICON, COLOUR=COL)
 					START_Y -= slope
 					time.sleep(REFRESH_RATE)
-					# draw the previous character to clear the missile path
 					draw.draw_char(prev_xy[0], prev_xy[1], prev_char, COLOUR='YELLOW')
 			
 		draw.draw_char(STRIKE_X, STRIKE_Y-1, '🌞')
 
 	def ICBM_bresenham(start: tuple, strike: tuple, chemtrail=True, speed=0.4):
-		'''
+		"""
 		Launch a missile from start to strike using the Bresenham algorithm.
-		returns a list of tuples representing the coords which were detonated. 
-		'''
+
+		Args:
+			start (tuple): The starting coordinates.
+			strike (tuple): The coordinates of the strike.
+			chemtrail (bool): Whether to draw a chemtrail.
+			speed (float): The speed of the missile.
+
+		Returns:
+			list: List of coordinates affected by the missile.
+		"""
 		chemtrail_colour = "WHITE"
 		chemtrail_icon = "*"
 		line = draw.get_line(start, strike)
@@ -506,10 +650,19 @@ class missiles():
 
 
 class map():
-	'''Methods and attributes for the map'''
+	"""
+	Class containing methods and attributes for the game map.
+	"""
 
 	def print_map(COLOUR: str, SPEED: float, ocean=False):
-		# clear entire terminal 
+		"""
+		Print the game map.
+
+		Args:
+			COLOUR (str): The color of the map.
+			SPEED (float): The speed of printing the map.
+			ocean (bool): Whether to print the ocean.
+		"""
 		bext.clear()
 		X = 0
 		Y = 0
@@ -527,6 +680,13 @@ class map():
 			map.print_ocean()
 
 	def print_ocean(SYMBOL: str="^", OCEAN_COLOUR: str="CYAN"):
+		"""
+		Print the ocean on the map.
+
+		Args:
+			SYMBOL (str): The symbol representing the ocean.
+			OCEAN_COLOUR (str): The color of the ocean.
+		"""
 		with open('WATER_COORDS.txt', 'r') as f:
 			xy_ocean_coords = ast.literal_eval(f.read())
 			
@@ -534,15 +694,29 @@ class map():
 			draw.draw_char(xy[0], xy[1], SYMBOL, COLOUR=OCEAN_COLOUR)
 
 	def get_ocean_tiles() -> list:
-		'''returns a list of coordinates of ocean tiles'''
+		"""
+		Get the coordinates of ocean tiles.
+
+		Returns:
+			list: List of coordinates of ocean tiles.
+		"""
 		with open('WATER_COORDS.txt', 'r') as f:
 			xy_ocean_coords = ast.literal_eval(f.read())
 		return xy_ocean_coords
 
 	def check_for_ocean(x, y) -> bool:
-		'''checks if a tile is ocean'''
+		"""
+		Check if a tile is an ocean tile.
+
+		Args:
+			x (int): The x-coordinate.
+			y (int): The y-coordinate.
+
+		Returns:
+			bool: True if the tile is an ocean tile, False otherwise.
+		"""
 		ocean_tiles = map.get_ocean_tiles()
-		if x < 2: # prevents drawing on the numbers
+		if x < 2:
 			return False
 		if (x, y) in ocean_tiles:
 			return True
@@ -550,24 +724,46 @@ class map():
 			return False
 
 	def check_for_obstruction(list_of_coords: list) -> bool:
-		'''checks if a list of coordinates is entirely ocean'''
+		"""
+		Check if a list of coordinates is entirely ocean.
+
+		Args:
+			list_of_coords (list): List of coordinates to check.
+
+		Returns:
+			bool: True if all coordinates are ocean tiles, False otherwise.
+		"""
 		for xy in list_of_coords:
 			if not map.check_for_ocean(xy[0], xy[1]):
 				return False
 		return True
 
 	def convert_x_coord(x: str) -> int:
-		'''Converts a grid coordinate (X, 3) to a screen coordinate (100, 3)'''
+		"""
+		Convert a grid coordinate to a screen coordinate.
+
+		Args:
+			x (str): The grid coordinate.
+
+		Returns:
+			int: The screen coordinate.
+		"""
 		alpha = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 		x_values = [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96, 102, 108, 114, 120, 126, 132, 138, 144, 150]
 		x_values_dict = dict(zip(alpha, x_values))
-		return x_values_dict[x.upper()]-2 # minus 2 due to an error offset with x_values (A is actually 4, etc) too lazy to fix rn
+		return x_values_dict[x.upper()]-2
 
 	def get_coordinates_inside_circle(circle_center: tuple, circle_coords: list) -> list:
-		'''
-		circle = a list of coordinates of the circle's circumference
-		Returns all the coordinates that are within a circle drawn.
-		'''
+		"""
+		Get coordinates inside a circle.
+
+		Args:
+			circle_center (tuple): The center of the circle.
+			circle_coords (list): List of coordinates of the circle's perimeter.
+
+		Returns:
+			list: List of coordinates inside the circle.
+		"""
 		coords_in_circle = []
 		for x, y in circle_coords:
 			line = draw.get_line((circle_center[0], circle_center[1]), (x, y))
@@ -578,7 +774,15 @@ class map():
 		return coords_in_circle
 
 	def print_subs(player="", enemies=[], allies=[], REVEALED_ENEMIES=[]):
-		'''Draws the enemy subs, takes in a list of enemies, a list of allies, and the player's countries name (string)'''
+		"""
+		Draw enemy submarines.
+
+		Args:
+			player (str): The player's country.
+			enemies (list): List of enemies.
+			allies (list): List of allies.
+			REVEALED_ENEMIES (list): List of revealed enemy submarines.
+		"""
 		for country_name, country_data in countries.items():
 			if country_name in enemies:
 				for sub in country_data['subs']:
@@ -593,6 +797,14 @@ class map():
 			draw.draw_char(XY_tuple[0], XY_tuple[1], '𝑆', COLOUR="RED")
 
 	def print_silos(player: str, enemies: list, allies: list):
+		"""
+		Draw silos on the map.
+
+		Args:
+			player (str): The player's country.
+			enemies (list): List of enemies.
+			allies (list): List of allies.
+		"""
 		for country in countries:
 			if country == player:
 				bext.fg('purple')
@@ -607,9 +819,15 @@ class map():
 			print('@')
 
 	def print_all_layers(player: str, enemies: list, allies: list, Found_Enemy_Subs: list = []):
-		'''
-		SHOW_ENEMY_SUBS = []: List of enemy sub (tuples) to reveal to player, default is none
-		'''
+		"""
+		Print all layers of the map.
+
+		Args:
+			player (str): The player's country.
+			enemies (list): List of enemies.
+			allies (list): List of allies.
+			Found_Enemy_Subs (list): List of found enemy submarines.
+		"""
 		map.print_map(COLOUR='YELLOW', SPEED=REFRESH_RATE)
 		map.print_ocean()
 		map.print_subs(player=player, allies=allies, enemies=enemies)
@@ -617,12 +835,15 @@ class map():
 		map.print_silos(player=player, enemies=enemies, allies=allies)
 		
 
-
-	# region Dev Tool
-
 	def print_ocean_dev(MAP, TERRAIN_COLOUR="yellow", OCEAN_COLOUR="cyan"):
-		'''used for printing the ocean, but requires a pre-defined map which already displays the ocean'''
+		"""
+		Print the ocean for development purposes.
 
+		Args:
+			MAP (list): The map.
+			TERRAIN_COLOUR (str): The color of the terrain.
+			OCEAN_COLOUR (str): The color of the ocean.
+		"""
 		for y in range(len(MAP)):
 			for x in range(len(MAP[y])):
 				if MAP[y][x] == ' ':
@@ -634,7 +855,9 @@ class map():
 				sys.stdout.flush()
 
 	def find_oceans_dev():
-		'''Tool for mapping the ocean onto the map'''
+		"""
+		Tool for mapping the ocean onto the map.
+		"""
 		def draw_waters(colour="cyan", char="+"):
 			water_coords_list = []
 			with open('waters.txt', 'r') as waters:
@@ -647,32 +870,29 @@ class map():
 				time.sleep(0.0002)
 		
 		
-		# original sample code for finding oceans manually – superseded by flood_fill()
 		while not True:
 			try:
-				start_y += 1 # = int(xy[1])
+				start_y += 1
 			except UnboundLocalError:
 				draw.clear_screen()
 				map.print_map('yellow', 0.00002)
-				draw.clear_console()  # always clear console before writing to it
+				draw.clear_console()
 				start_y =  pyinputplus.inputInt('Enter starting y coordinate: ', min=1, max=45)
 			else:
-				MapStatus = True # initial state, is set to false to exit loop
-				while MapStatus: # main loop after initial start_y is set
+				MapStatus = True
+				while MapStatus:
 					draw.clear_screen()
 					map.print_map('yellow', 0.00002)
 					draw_waters(colour="cyan", char="^")
-					draw.clear_console()  # always clear console before writing to it
+					draw.clear_console()
 
-					# read and draw the oceans that are already saved in the .txt file
 					draw_waters(colour="cyan", char="^")
 
 					draw.clear_console()		
 					draw.console(f"y coordinate is: {start_y}")
 					
-					start_x = convert_x_coord(pyinputplus.inputStr('Enter starting x coordinate (ABC...): ')) #int(xy[0]) #
+					start_x = convert_x_coord(pyinputplus.inputStr('Enter starting x coordinate (ABC...): '))
 					draw.clear_console()
-					# check if the space is correct, otherwise prompt again
 					bext.goto(start_x, start_y)
 					draw.draw_char(start_x, start_y, CHAR='X', COLOUR="WHITE")
 					draw.clear_console()
@@ -683,24 +903,21 @@ class map():
 						continue
 					correct_positioning = str(pyinputplus.inputYesNo('Is this the correct position? ')).upper()
 					if correct_positioning == "YES":
-						# check if the space to the left is a water tile aka " "
 						x_left = start_x - 1
 						while draw.get_original_character(x_left, start_y) == ' ':
 							draw.draw_char(x_left, start_y, CHAR='~', COLOUR="BLUE")
 							x_left -= 1
 							time.sleep(SMALL_PAUSE)
 						left_ocean = list(range(x_left+1, start_x))
-						# check if the space to the right is a water tile aka " "
 						x_right = start_x + 1
 						while draw.get_original_character(x_right, start_y) == ' ' and x_right < 152:
 							draw.draw_char(x_right, start_y, CHAR='~', COLOUR="BLUE")
 							x_right += 1
 							time.sleep(SMALL_PAUSE)
-						right_ocean = list(range(start_x, x_right)) # +1 because it is off by 1
+						right_ocean = list(range(start_x, x_right))
 
 						new_ocean_tiles_list = left_ocean + right_ocean
 
-						# completely redraw the new ocean and check if its correct?
 						map.print_map('yellow', 0.00002)
 						draw.clear_console()
 						for x in new_ocean_tiles_list:
@@ -723,7 +940,6 @@ class map():
 						else:
 							continue
 
-						# ask dev if they want to continue marking oceans, else quit
 						more_maps = pyinputplus.inputMenu(["Yes", "No"], 'Do you want to save more maps?\n', numbered=True)
 						draw.console(more_maps)
 
@@ -738,24 +954,16 @@ class map():
 						continue
 
 		def flood_fill(matrix, x, y, old, new):
-			# we need the x and y of the start position, the old value,
-			# and the new value
-			# the flood fill has 4 parts
-			# firstly, make sure the x and y are inbounds
 			if x < 0 or x >= len(matrix[0]) or y < 1 or y >= len(matrix)-1:
 				return
-			# secondly, check if the current position equals the old value
 			if matrix[y][x] != old:
 				return
 
-			# thirdly, set the current position to the new value
 			matrix[y][x] = new
-			# fourthly, attempt to fill the neighboring positions
 			flood_fill(matrix, x+1, y, old, new)
 			flood_fill(matrix, x-1, y, old, new)
 			flood_fill(matrix, x, y+1, old, new)
 			flood_fill(matrix, x, y-1, old, new)
-			# return the matrix
 			return matrix
 
 
@@ -767,25 +975,22 @@ class map():
 					WATER_COORDS.append((x, y))
 		with open("WATER_COORDS.txt", "a") as f:
 			f.write(str(WATER_COORDS))
-	# endregion
 
-
-# region Classic Mode Code
 
 def classic_mode():
+	"""
+	Classic mode of the game.
+	"""
 	bext.clear()
 	map.print_map("yellow", REFRESH_RATE)
-	# create list of countries / players: 
 	unassigned_countries = []
 
 	for country in countries:
-		# reset status of all countries:
 		countries[country]['status'] = True
 		unassigned_countries.append(country)
 
 	all_countries = unassigned_countries.copy()
 
-	# ask player which country they want to be
 	bext.goto(0, 48)
 	player_country = pyinputplus.inputMenu(
 		unassigned_countries, "CHOOSE A COUNTRY:\n", numbered=True)
@@ -795,27 +1000,20 @@ def classic_mode():
 	allies = []
 	enemies = []
 
-	# set limit of allies: 
 	ally_limit = randint(2,5)
-	# set number of enemies
 	enemies_limit = len(all_countries) - ally_limit
 
-	# randomly assisgn allies and enemies
 	for country in unassigned_countries:
 		if len(allies) < ally_limit:
 			allies.append(country)
 		else:
 			enemies.append(country)
 
-	# make a copy the original allies and enemies
-	# so that it can be used in the draw.playerlist function
 	original_allies = allies.copy()
 	original_enemies = enemies.copy()
 
-	# display the box of enemies and allies
 	draw.player_list(allies, enemies, player_country)
 
-	# draw ally bases 
 	def draw_bases():
 		for country in countries:
 			if country == player_country:
@@ -831,14 +1029,14 @@ def classic_mode():
 			print('@')
 
 	def playermove():
-		'''Ask the player what countries it should target'''
-		
-		draw.clear_console()  # clear bottom text area
+		"""
+		Ask the player what countries it should target.
+		"""
+		draw.clear_console()
 
-		# if there is more than 1 enemy, ask the user which country to target
 		if len(enemies) > 1:
 			target = pyinputplus.inputMenu(enemies, "CHOSE A COUNTRY TO TARGET:\n", lettered=True)
-		else: # otherwise automatically fire at the last enemy
+		else:
 			target = enemies[0]			
 
 		start_x = countries[player_country]['location'][0]
@@ -849,19 +1047,16 @@ def classic_mode():
 		missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
 		draw.draw_fallout(strike_x, strike_y, RADIUS=1)
 
-		# remove country from list of targettable enemies
 		enemies.remove(target)
-		# change countries status to false
 		countries[target]['status'] = False
 
 	def automove():
-		'''Randomly selects a country to fire at one of its enemies.'''
+		"""
+		Randomly selects a country to fire at one of its enemies.
+		"""
 		remaining_countries = enemies + allies 
-		# randomly assign which country is firing
 		start = choice(remaining_countries)
-		# ensure country doesn't fire at itself
 		remaining_countries.remove(start)
-		# set possible targets to a state's enemies only
 		if start in enemies:
 			possible_targets = allies
 			possible_targets.append(player_country)
@@ -869,10 +1064,8 @@ def classic_mode():
 			possible_targets = enemies
 		target = choice(possible_targets)
 
-		# start (x,y) for missile base location
 		start_x = countries[start]['location'][0]
 		start_y = countries[start]['location'][1]
-		# strike (x,y) for missile's target location
 		strike_x = countries[target]['location'][0]
 		strike_y = countries[target]['location'][1]
 
@@ -891,8 +1084,13 @@ def classic_mode():
 		draw_bases()
 
 	def base_message(text: str, country: str):
-		'''PRINTS A MESSAGE AT A SPECIFIC COUNRTY'S SILO LOCATION
-		Mainly used for printing 'You lose' at game end'''
+		"""
+		Print a message at a specific country's silo location.
+
+		Args:
+			text (str): The message to be printed.
+			country (str): The country where the message will be printed.
+		"""
 		bext.goto(countries[country]['location'][0],
 					countries[country]['location'][1])
 		bext.bg('RED')
@@ -922,24 +1120,37 @@ def classic_mode():
 		base_message(f'YOU WON IN {turn} TURNS, RESTARTING IN 10s', player_country)
 
 
-# endregion
-
-
 class SubsAndSilos():
+	"""
+	Class containing functions for the Submarines and Silos game mode.
+	"""
 
 	def audio(type:str):
+		"""
+		Play audio based on the type.
+
+		Args:
+			type (str): The type of audio to play.
+		"""
 		if type == "sub_launch":
 			playsound("sounds/sfx_exp_medium7.wav")
 
 
 	def display_map():
-		'''Display the map of the game'''
+		"""
+		Display the map of the game.
+		"""
 		bext.clear()
 		map.print_map("yellow", SPEED=REFRESH_RATE, ocean=True)
 		draw.clear_console()
 		
 	def ask_for_ocean_coords():
-		'''Ask the user for the coordinates of the ocean'''
+		"""
+		Ask the user for the coordinates of the ocean.
+
+		Returns:
+			tuple: The coordinates of the ocean.
+		"""
 		space_is_not_ocean = True
 		while space_is_not_ocean:
 			x = map.convert_x_coord(pyinputplus.inputStr(prompt="What is your sub's X coordinate in the ocean (A, B, C, etc): "))
@@ -952,38 +1163,49 @@ class SubsAndSilos():
 		return (x, y)
 
 	def action_sonar(player_country: str, enemies: list, allies: list, radius: int) -> list:
-		'''
-		Performs a sonar around the submarine, displaying a blue circle around the submarine like a sonar
-		returns a list of x,y coords that were made visible
-		'''
-		player_sub = countries[player_country]['subs'][0] # the x, y coordinates of the player's sub
-		# draw a blue circle around the player's sub, indicating possible detect locations (10 tile radius)
-		sonar = draw.draw_circle(player_sub[0], player_sub[1], RADIUS=radius, COLOUR="BLUE") # returns a list of the tiles that are in the radius of the sub
-		visible_coords = [] # used to store the x,y of the lines that were drawn during the sonar so we can return what was visible to the submarine
+		"""
+		Perform a sonar around the submarine.
+
+		Args:
+			player_country (str): The player's country.
+			enemies (list): List of enemies.
+			allies (list): List of allies.
+			radius (int): The radius of the sonar.
+
+		Returns:
+			list: List of coordinates that were made visible.
+		"""
+		player_sub = countries[player_country]['subs'][0]
+		sonar = draw.draw_circle(player_sub[0], player_sub[1], RADIUS=radius, COLOUR="BLUE")
+		visible_coords = []
 		for xy in sonar:
-			# draw a blue line between the sub and the sonar
-			# if the radius * 1.2 is less than the distance between the sub and the sonar, draw a normal line
 			if missiles.get_distance(player_sub[0], player_sub[1], xy[0], xy[1]) < (radius * 1.2):
 				coords = draw.draw_line(player_sub[0], player_sub[1], xy[0], xy[1], COLOUR="BLUE")
 				time.sleep(0.0002)
 				visible_coords.extend(coords) 
 			else:
-				# otherwise it must have wrapped around the map, so draw a line starting at the otherside of the map, but only if x < 154 and y < 45
-				
-				if player_sub[0] < (152 / 2): # handles when the sub is on the left edge of the map:
-					subx, suby = player_sub[0] + 154, player_sub[1] # if the sub is on the left side, then we add 154 to the x coord in order to wrap it around
-					visible_coords.extend( draw.draw_line(subx - 154, suby, 1, xy[1], COLOUR="BLUE")) # this one draws the line from the submarine's original location (since we still need a line there too)
-					visible_coords.extend( draw.draw_line(subx, suby, xy[0], xy[1], COLOUR="BLUE")) # this one is for drawing the line at the other side of the map
-				else: # handles when the sub is on the left edge of the map:
-					subx, suby = player_sub[0] - 154, player_sub[1] # if the sub is on the right side, then we need to subtract 154 
-					visible_coords.extend( draw.draw_line(player_sub[0], suby, 153, xy[1], COLOUR="BLUE")) # this one draws the line from the submarine's original location (since we still need a line there too)
-					visible_coords.extend( draw.draw_line(subx, suby, xy[0], xy[1], COLOUR="BLUE")) # this one is for drawing the line at the other side of the map
+				if player_sub[0] < (152 / 2):
+					subx, suby = player_sub[0] + 154, player_sub[1]
+					visible_coords.extend( draw.draw_line(subx - 154, suby, 1, xy[1], COLOUR="BLUE"))
+					visible_coords.extend( draw.draw_line(subx, suby, xy[0], xy[1], COLOUR="BLUE"))
+				else:
+					subx, suby = player_sub[0] - 154, player_sub[1]
+					visible_coords.extend( draw.draw_line(player_sub[0], suby, 153, xy[1], COLOUR="BLUE"))
+					visible_coords.extend( draw.draw_line(subx, suby, xy[0], xy[1], COLOUR="BLUE"))
 
 				time.sleep(0.006)
-		return utility.removeDuplicates(visible_coords) # remove duplicate x,y tuples
+		return utility.removeDuplicates(visible_coords)
 
 	def action_attack(player_country):
-		# draw a red circle around the player's sub, indicating possible attack locations (10 tile radius)
+		"""
+		Perform an attack from the submarine.
+
+		Args:
+			player_country (str): The player's country.
+
+		Returns:
+			list: List of coordinates affected by the attack.
+		"""
 		circle = draw.draw_circle(countries[player_country]['subs'][0][0], countries[player_country]['subs'][0][1], RADIUS=20, COLOUR="RED", erase_map_tiles=True)
 		coords_inside_circle = map.get_coordinates_inside_circle((countries[player_country]['subs'][0][0], countries[player_country]['subs'][0][1]), circle)	
 		missile_coords_valid = False
@@ -1000,12 +1222,17 @@ class SubsAndSilos():
 		return missiles.ICBM_bresenham(countries[player_country]['subs'][0], target_coords)
 				
 	def action_move(subxy: tuple, direction: str, distance: int):
-		'''
-		Moves the submarine in the specified direction
-		returns the new x,y coordinates of the submarine if they are valid (ie in the ocean)
-		otherwise returns the False
-		'''
-		# validate that it is an ocean tile
+		"""
+		Move the submarine in the specified direction.
+
+		Args:
+			subxy (tuple): The current coordinates of the submarine.
+			direction (str): The direction to move.
+			distance (int): The distance to move.
+
+		Returns:
+			tuple: The new coordinates of the submarine if valid, False otherwise.
+		"""
 		if direction == "N":
 			moveto = (subxy[0], subxy[1] - distance)
 		elif direction == "S":
@@ -1021,6 +1248,16 @@ class SubsAndSilos():
 			return False
 
 	def search_for_subs(seeking_countries: list, search_coords: list):
+		"""
+		Search for submarines in the specified coordinates.
+
+		Args:
+			seeking_countries (list): List of countries to search for.
+			search_coords (list): List of coordinates to search.
+
+		Returns:
+			list: List of found submarines.
+		"""
 		sub_coords = []
 		for country_name, country_data in countries.items():
 			if country_name in seeking_countries:
@@ -1034,18 +1271,20 @@ class SubsAndSilos():
 		return found_subs
 
 	def setup_game():
-		
-		# create list of countries / players: 
+		"""
+		Set up the game.
+
+		Returns:
+			tuple: The player's country, list of enemies, list of allies, original list of allies, original list of enemies.
+		"""
 		unassigned_countries = []
 
 		for country in countries:
-			# reset status of all countries:
 			countries[country]['status'] = True
 			unassigned_countries.append(country)
 
 		all_countries = unassigned_countries.copy()
 
-		# ask player which country they want to be
 		bext.goto(0, 48)
 		player_country = pyinputplus.inputMenu(
 			unassigned_countries, "CHOOSE A COUNTRY:\n", numbered=True)
@@ -1055,47 +1294,50 @@ class SubsAndSilos():
 		allies = []
 		enemies = []
 
-		# set limit of allies: 
 		ally_limit = randint(2,5)
-		# set number of enemies
 		enemies_limit = len(all_countries) - ally_limit
 
-		# randomly assisgn allies and enemies
 		for country in unassigned_countries:
 			if len(allies) < ally_limit:
 				allies.append(country)
 			else:
 				enemies.append(country)
 
-		# make a copy the original allies and enemies
-		# so that it can be used in the draw.playerlist function
 		original_allies = allies.copy()
 		original_enemies = enemies.copy()
 
-		# display the box of enemies and allies
 		draw.player_list(allies, enemies, player_country)
 
-		# draw bases
 		map.print_silos(player_country, enemies, allies)
 		
-		# ask player for their sub's coords
 		draw.clear_console()
 		player_sub_x, player_sub_y = SubsAndSilos.ask_for_ocean_coords()
 		countries[player_country]['subs'].append((player_sub_x, player_sub_y))
 		
-		# randomly generate sub coordinates for other players by choosing a random ocean tile
 		ocean_coords = map.get_ocean_tiles()
 		for country_name, country_data in countries.items():
 			if country_name in enemies or country_name in allies and not country_name == player_country:
 				country_data['subs'].append(choice(ocean_coords))
 		
-		map.print_subs(player_country, allies=allies) # draw subs minus enemies
+		map.print_subs(player_country, allies=allies)
 
 		return player_country, enemies, allies, original_allies, original_enemies
 			
 
 	def player_move(player_country, enemies, allies, original_allies, original_enemies):
-		'''Player's turn'''
+		"""
+		Handle the player's turn.
+
+		Args:
+			player_country (str): The player's country.
+			enemies (list): List of enemies.
+			allies (list): List of allies.
+			original_allies (list): Original list of allies.
+			original_enemies (list): Original list of enemies.
+
+		Returns:
+			tuple: Updated player country, list of enemies, list of allies, original list of allies, original list of enemies.
+		"""
 		map.print_all_layers(player_country, enemies, allies, Found_Enemy_Subs=enemies)
 		draw.clear_console()
 		action = pyinputplus.inputMenu(["Move", "Attack", "Detect", "End Turn"], "What would you like to do?\n", lettered=True)
@@ -1103,13 +1345,10 @@ class SubsAndSilos():
 		player_sub_x, player_sub_y = countries[player_country]['subs'][0]
 		if action == "Move":
 			distance_max = 10
-			# draw a green circle around the player's sub, indicating possible move locations (4 tile radius)
 			draw.draw_circle(player_sub_x, player_sub_y, RADIUS=distance_max, COLOUR="GREEN")
-			# ask player to move N, S, E, W
 			draw.clear_console()
 			move_direction = pyinputplus.inputMenu(["N", "S", "E", "W"], "What direction would you like to move?\n", lettered=True)
 			move_distance = pyinputplus.inputInt("How many tiles would you like to move?\n", min=1, max=distance_max-1)
-			# move the sub
 			new_sub_coords = SubsAndSilos.action_move((player_sub_x, player_sub_y), move_direction, move_distance)
 			if new_sub_coords:
 				countries[player_country]['subs'][0] = SubsAndSilos.action_move(countries[player_country]['subs'][0], move_direction, move_distance)
@@ -1137,10 +1376,18 @@ class SubsAndSilos():
 		return player_country, enemies, allies, original_allies, original_enemies
 
 	def enemy_move(player_country, enemies, allies, original_allies, original_enemies):
-		'''Enemy's turn'''
+		"""
+		Handle the enemy's turn.
+
+		Args:
+			player_country (str): The player's country.
+			enemies (list): List of enemies.
+			allies (list): List of allies.
+			original_allies (list): Original list of allies.
+			original_enemies (list): Original list of enemies.
+		"""
 		map.print_all_layers(player_country, enemies, allies, Found_Enemy_Subs=enemies)
 		draw.clear_console()
-		# for each enemy sub, randomly move 1-8 tiles
 		for country in enemies:
 			move_valid = False
 			while not move_valid:
@@ -1148,7 +1395,7 @@ class SubsAndSilos():
 				possible_moves = draw.draw_circle(countries[country]['subs'][0][0], countries[country]['subs'][0][1], RADIUS=move_distance, visible=False)
 				new_sub_coords = choice(possible_moves)
 				travel_line = draw.get_line(countries[country]["subs"][0], new_sub_coords)
-				if new_sub_coords and map.check_for_obstruction(travel_line): # validate that it is a possible travel path
+				if new_sub_coords and map.check_for_obstruction(travel_line):
 					move_valid = True
 			countries[country]["subs"][0] = new_sub_coords
 			
@@ -1165,50 +1412,29 @@ class SubsAndSilos():
 
 
 def submarinesandsilos():
-	'''
-		This is the main function for the submarines and silos game.
-		It is called when the user selects the 'Submarines and Silos' option.
-		It is responsible for setting up the game, and calling the functions
-		that handle the game logic.
-	'''
-	# display map
+	"""
+	Main function for the Submarines and Silos game mode.
+	"""
 	SubsAndSilos.display_map()
-	# set up the game
 	player_country, enemies, allies, original_allies, original_enemies = SubsAndSilos.setup_game()
 
-
-	# ...
-
-	# Ask Player to Move
 	while True:
 		player_country, enemies, allies, original_allies, original_enemies = SubsAndSilos.player_move(player_country, enemies, allies, original_allies, original_enemies)
 		SubsAndSilos.enemy_move(player_country, enemies, allies, original_allies, original_enemies)
 
 
-
-
-
-
-
-
-##############################################################################################################################
-# MAIN GAME LOOP
-##############################################################################################################################
-
 def main():
+	"""
+	Main game loop.
+	"""
 	if WIDTH < 170 or HEIGHT < 60:
-		# Ensure enough space to print the entire map
 		print(f"TERMINAL WIDTH MUST BE > 170 characters wide and > 60 characters tall\nYour terminal is only: {WIDTH}px wide by {HEIGHT}px tall")
-		# sys.exit()
 
 	while True:
-		# Runs at the start of each game
 		draw.clear_console()
 		submarinesandsilos()
 		sys.exit()
 
-
-##############################################################################################################################
 
 if __name__ == '__main__':
 	try:
