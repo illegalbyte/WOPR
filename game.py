@@ -10,8 +10,8 @@ from map import Map
 from utility import Utility
 from random import randint, choice
 
-# import constants from WOPR2.py
-from WOPR2 import HEIGHT, WIDTH, REFRESH_RATE, SMALL_PAUSE, COLOURS, countries, console_prompts, WORLD_MAP, WORLD_MAP_GRAPH
+# import constants from constants.py
+from constants import HEIGHT, WIDTH, REFRESH_RATE, SMALL_PAUSE, COLOURS, countries, console_prompts, WORLD_MAP, WORLD_MAP_GRAPH
 
 def classic_mode():
     """

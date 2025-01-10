@@ -4,21 +4,7 @@ import sys
 import time
 import math
 import ast
-
-# BEXT REQUIREMENTS, for printing to the screen
-WIDTH, HEIGHT = bext.size()
-#	for Windows (OS) term width (prevents printing a newline when reaching the end of terminal)
-WIDTH -= 1
-# the speed of animations per second
-REFRESH_RATE = 0.00002
-SMALL_PAUSE = 0.0008
-# colours which can be used by BEXT
-COLOURS = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
-# console prompts list (stores the prompts for the game)
-console_prompts = []
-# Read world map from map .txt file 
-with open('WORLD_MAP.txt', 'r') as map:
-	WORLD_MAP = map.read()
+from constants import WIDTH, HEIGHT, REFRESH_RATE, SMALL_PAUSE, COLOURS, console_prompts, WORLD_MAP
 
 class Draw():
 	"""

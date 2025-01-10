@@ -6,17 +6,8 @@ import math
 import ast
 from draw import Draw
 from missiles import Missiles
+from constants import WIDTH, REFRESH_RATE, SMALL_PAUSE, COLOURS, countries, console_prompts, WORLD_MAP, WORLD_MAP_GRAPH
 
-from WOPR2 import WIDTH, REFRESH_RATE, SMALL_PAUSE, COLOURS, countries, console_prompts, WORLD_MAP, WORLD_MAP_GRAPH
-
-
-# Read world map from map .txt file 
-with open('WORLD_MAP.txt', 'r') as map:
-	WORLD_MAP = map.read()
-WORLD_MAP_GRAPH = WORLD_MAP.splitlines() # splits the string into a list, using "\n" as the delimiter
-WORLD_MAP_GRAPH = [list(line) for line in WORLD_MAP_GRAPH] # converts each line of the map to a list (mutable) instead of a string (immutable)
-# CHANGE RECURSION LIMIT FOR FLOOD FILL
-sys.setrecursionlimit(len(WORLD_MAP_GRAPH)*len(WORLD_MAP_GRAPH[0])*2)
 
 class Map():
 	"""
