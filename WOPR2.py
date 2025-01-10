@@ -821,7 +821,7 @@ class Map():
 			allies (list): List of allies.
 			Found_Enemy_Subs (list): List of found enemy submarines.
 		"""
-		Map.print_map(COLOUR='YELLOW', SPEED=REFRESH_RATE)
+		Map.print_map(COLOUR='GREEN', SPEED=REFRESH_RATE)
 		Map.print_ocean()
 		Map.print_subs(player=player, allies=allies, enemies=enemies)
 		Draw.player_list(allies, enemies, player)
@@ -975,7 +975,7 @@ def classic_mode():
 	Classic mode of the game.
 	"""
 	bext.clear()
-	Map.print_map("yellow", REFRESH_RATE)
+	Map.print_map("green", REFRESH_RATE)
 	unassigned_countries = []
 
 	for country in countries:
@@ -1038,7 +1038,7 @@ def classic_mode():
 		strike_y = countries[target]['location'][1]
 
 		Missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
-		Draw.draw_fallout(strike_x, strike_y, RADIUS=1)
+		Draw.draw_fallout((strike_x, strike_y), 2, 0.05, "purple", "*")
 
 		enemies.remove(target)
 		countries[target]['status'] = False
@@ -1413,7 +1413,7 @@ def main():
 
 	while True:
 		Draw.clear_console()
-		submarinesandsilos()
+		classic_mode()
 		sys.exit()
 
 
