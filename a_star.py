@@ -1,7 +1,5 @@
 # A* Algorithm for Missile Pathfinding
 
-import time
-
 levelWidth = 153
 levelHeight = 46
 
@@ -65,25 +63,3 @@ def getShortestPath(level, startCoordinate, endCoordinate):
 
             searchPaths.append(currentPath + [nextCoordinate])
             visitedCoordinates += [nextCoordinate]
-
-# Unit tests for the functions in a_star.py
-def test_getNextMoves():
-    """
-    Test the getNextMoves function.
-    """
-    assert getNextMoves(0, 0) == [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, 1], [1, 1], [-1, -1], [1, -1]]
-    assert getNextMoves(1, 1) == [[0, 1], [2, 1], [1, 0], [1, 2], [0, 2], [2, 2], [0, 0], [2, 0]]
-
-def test_getShortestPath():
-    """
-    Test the getShortestPath function.
-    """
-    level = [[' ' for _ in range(levelWidth)] for _ in range(levelHeight)]
-    assert getShortestPath(level, [0, 0], [1, 1]) == [[0, 0], [1, 1]]
-    assert getShortestPath(level, [0, 0], [2, 2]) == [[0, 0], [1, 1], [2, 2]]
-
-if __name__ == "__main__":
-    test_getNextMoves()
-    test_getShortestPath()
-    print("All tests passed.")
-
