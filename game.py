@@ -31,13 +31,14 @@ class ClassicMode:
             self.unassigned_countries.append(country)
 
         self.all_countries = self.unassigned_countries.copy()
-
+        # Ask the player to choose a country
         bext.goto(0, 48)
         self.player_country = pyinputplus.inputMenu(
             self.unassigned_countries, "CHOOSE A COUNTRY:\n", numbered=True)
 
+        # Remove the player's country from the unassigned countries list
         self.unassigned_countries.remove(self.player_country)
-
+        # Assign allies and enemies
         self.allies = []
         self.enemies = []
 
