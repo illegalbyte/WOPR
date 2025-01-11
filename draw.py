@@ -5,6 +5,7 @@ import time
 import math
 import ast
 from constants import *
+from map import Map
 
 class Draw():
 	"""
@@ -123,7 +124,7 @@ class Draw():
 			if y > 45:
 				theta += step
 				continue
-			if Draw.get_original_character(x, y) == ' ':
+			if Draw.get_original_map_character(x, y) == ' ':
 				if visible:
 					Draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
 				if (round(x), round(y)) not in circle:
@@ -350,7 +351,7 @@ class Draw():
 				bext.goto(x, y)
 				print(' ', end='')
 
-	def get_original_character(x,y):
+	def get_original_map_character(x,y):
 		"""
 		Get the original character from the map.
 

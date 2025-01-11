@@ -9,8 +9,6 @@ from missiles import Missiles
 from map import Map
 from utility import Utility
 from random import randint, choice
-
-# import constants from constants.py
 from constants import *
 
 def classic_mode():
@@ -154,6 +152,28 @@ def classic_mode():
         base_message(f'YOU LOST IN {turn} TURNS, RESTARTING IN 10s', player_country)
     else:
         base_message(f'YOU WON IN {turn} TURNS, RESTARTING IN 10s', player_country)
+
+
+class Submarine:
+	"""
+	Class representing a submarine.
+	"""
+	allies = []
+	enemies = []
+
+	def __init__(self, xy: tuple, country: str):
+		"""
+			Initialize a submarine.
+
+			Args:
+				xy (tuple): The coordinates of the submarine.
+				country (str): The country to which the submarine belongs.
+			"""
+		self.country = country
+		self.coords = xy
+		self.status = True
+		self.destroyed = False
+		self.allies.append(self.country)
 
 
 class SubsAndSilos():

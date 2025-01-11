@@ -214,7 +214,7 @@ class Map():
 					Draw.draw_char(x, y, MAP[y][x], COLOUR=TERRAIN_COLOUR)
 				sys.stdout.flush()
 
-	def find_oceans_dev():
+	def _find_oceans_dev():
 		"""
 		Tool for mapping the ocean onto the map.
 		"""
@@ -256,7 +256,7 @@ class Map():
 					bext.goto(start_x, start_y)
 					Draw.draw_char(start_x, start_y, CHAR='X', COLOUR="WHITE")
 					Draw.clear_console()
-					if Draw.get_original_character(start_x, start_y) != ' ':
+					if Draw.get_original_map_character(start_x, start_y) != ' ':
 						Draw.clear_console()
 						Draw.console(f"The space is not empty, please try again")
 						time.sleep(0.5)
@@ -264,13 +264,13 @@ class Map():
 					correct_positioning = str(pyinputplus.inputYesNo('Is this the correct position? ')).upper()
 					if correct_positioning == "YES":
 						x_left = start_x - 1
-						while Draw.get_original_character(x_left, start_y) == ' ':
+						while Draw.get_original_map_character(x_left, start_y) == ' ':
 							Draw.draw_char(x_left, start_y, CHAR='~', COLOUR="BLUE")
 							x_left -= 1
 							time.sleep(SMALL_PAUSE)
 						left_ocean = list(range(x_left+1, start_x))
 						x_right = start_x + 1
-						while Draw.get_original_character(x_right, start_y) == ' ' and x_right < 152:
+						while Draw.get_original_map_character(x_right, start_y) == ' ' and x_right < 152:
 							Draw.draw_char(x_right, start_y, CHAR='~', COLOUR="BLUE")
 							x_right += 1
 							time.sleep(SMALL_PAUSE)

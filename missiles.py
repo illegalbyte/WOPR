@@ -87,7 +87,7 @@ class Missiles():
                 prev_xy = []
                 for x in range(START_X, STRIKE_X):
                     prev_xy = [x, START_Y]
-                    prev_char = Draw.get_original_character(prev_xy[0], round(prev_xy[1]))
+                    prev_char = Draw.get_original_map_character(prev_xy[0], round(prev_xy[1]))
                     Draw.draw_char(x, START_Y, ICON, COLOUR=COL)
                     START_Y += slope
                     time.sleep(REFRESH_RATE)
@@ -96,7 +96,7 @@ class Missiles():
                 prev_xy = []
                 for x in range(START_X-STRIKE_X):
                     prev_xy = [START_X-x, START_Y]
-                    prev_char = Draw.get_original_character(prev_xy[0], round(prev_xy[1]))
+                    prev_char = Draw.get_original_map_character(prev_xy[0], round(prev_xy[1]))
                     Draw.draw_char(START_X-x, START_Y, ICON, COLOUR=COL)
                     START_Y -= slope
                     time.sleep(REFRESH_RATE)
