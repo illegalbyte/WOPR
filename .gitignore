@@ -8,6 +8,8 @@ __pycache__/
 
 .DS_Store
 
+.game_refactor_abandoned
+
 # Distribution / packaging
 .Python
 build/
@@ -117,3 +119,4 @@ dmypy.json
 .vscode/tasks.json
 .vscode/launch.json
 .vscode/settings.json
+.DS_Store

@@ -20,6 +20,31 @@ A text-based game inspired by the movie War Games.
    python WOPR.py
    ```
 
+## Code Hierachy
+
+```plaintext
+game/
+├── core/
+│   ├── __init__.py
+│   ├── constants.py      # Game constants, configs
+│   └── utilities.py      # Shared helper functions
+├── display/
+│   ├── __init__.py 
+│   ├── renderer.py       # Base rendering class
+│   └── terminal.py       # Terminal-specific rendering
+├── models/
+│   ├── __init__.py
+│   ├── base.py          # Base classes
+│   ├── map.py           # Map model
+│   ├── weapons.py       # Weapons models
+│   └── countries.py     # Country models  
+├── modes/
+│   ├── __init__.py
+│   ├── classic.py       # Classic game mode
+│   └── subsandsilos.py  # Subs & silos mode
+└── main.py
+```
+
 ## Game Overview
 
 WOPR is a text-based game inspired by the movie War Games. The game simulates a global thermonuclear war scenario where players can control different countries, launch missiles, and engage in strategic warfare.

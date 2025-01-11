@@ -3,7 +3,6 @@ import pyinputplus
 import sys
 import time
 import math
-import ast
 from constants import *
 from map import Map
 

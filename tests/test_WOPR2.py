@@ -1,5 +1,5 @@
 import unittest
-from WOPR2 import utility, draw, Submarine, missiles, map, SubsAndSilos
+from main import utility, draw, Submarine, missiles, map, SubsAndSilos
 
 class TestWOPR2(unittest.TestCase):
 

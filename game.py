@@ -2,8 +2,6 @@ import bext
 import pyinputplus
 import sys
 import time
-import math
-import ast
 from draw import Draw
 from missiles import Missiles
 from map import Map
