@@ -1,4 +1,5 @@
 import bext
+import sys
 
 # Define WIDTH constant
 WIDTH, HEIGHT = bext.size()

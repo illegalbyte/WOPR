@@ -13,7 +13,7 @@ from draw import Draw
 from missiles import Missiles
 from map import Map
 from game import classic_mode, SubsAndSilos, submarinesandsilos, main
-from constants import WIDTH, REFRESH_RATE, SMALL_PAUSE, COLOURS, countries, console_prompts, WORLD_MAP, WORLD_MAP_GRAPH
+from constants import *
 
 
 class Submarine:

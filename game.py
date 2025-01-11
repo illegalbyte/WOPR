@@ -11,7 +11,7 @@ from utility import Utility
 from random import randint, choice
 
 # import constants from constants.py
-from constants import HEIGHT, WIDTH, REFRESH_RATE, SMALL_PAUSE, COLOURS, countries, console_prompts, WORLD_MAP, WORLD_MAP_GRAPH
+from constants import *
 
 def classic_mode():
     """
@@ -75,13 +75,13 @@ def classic_mode():
         else:
             target = enemies[0]            
 
-        start_x = countries[player_country]['location'][0]
-        start_y = countries[player_country]['location'][1]
-        strike_x = countries[target]['location'][0]
-        strike_y = countries[target]['location'][1]
-
-        Missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
-        Draw.draw_fallout((strike_x, strike_y), 2, 0.05, "purple", "*")
+        start_coords = (countries[player_country]['location'][0], 
+                       countries[player_country]['location'][1])
+        target_coords = (countries[target]['location'][0],
+                        countries[target]['location'][1])
+    
+        Missiles.ICBM_bresenham(start_coords, target_coords)
+        Draw.draw_fallout(target_coords, 2, REFRESH_RATE, "purple", "*")
 
         enemies.remove(target)
         countries[target]['status'] = False
@@ -115,8 +115,8 @@ def classic_mode():
         elif target == player_country:
             countries[target]['status'] = False
 
-        Missiles.ICBM_diag(start_x, start_y, strike_x, strike_y, REFRESH_RATE=0.05, COL='YELLOW', ICON='>')
-        Draw.draw_fallout(strike_x, strike_y, RADIUS=1)
+        Missiles.ICBM_bresenham((start_x, start_y), (strike_x, strike_y))
+        Draw.draw_fallout((strike_x, strike_y), 2, REFRESH_RATE, "purple", "*")
         draw_bases()
 
     def base_message(text: str, country: str):

@@ -1,5 +1,5 @@
 # import constants from WOPR2.py
-from WOPR2 import WIDTH, REFRESH_RATE, SMALL_PAUSE, COLOURS, countries, console_prompts, WORLD_MAP, WORLD_MAP_GRAPH
+from constants import *
 
 class Utility():
     """

@@ -104,7 +104,7 @@ class Missiles():
             
         Draw.draw_char(STRIKE_X, STRIKE_Y-1, '🌞')
 
-    def ICBM_bresenham(start: tuple, strike: tuple, chemtrail=True, speed=0.4):
+    def ICBM_bresenham(start: tuple, strike: tuple, chemtrail=True, speed=0.03):
         """
         Launch a missile from start to strike using the Bresenham algorithm.
 

@@ -4,7 +4,7 @@ import sys
 import time
 import math
 import ast
-from constants import WIDTH, HEIGHT, REFRESH_RATE, SMALL_PAUSE, COLOURS, console_prompts, WORLD_MAP
+from constants import *
 
 class Draw():
 	"""
