@@ -9,6 +9,14 @@ class Missiles():
     Class containing functions related to firing and drawing missiles.
     """
 
+    def __init__(self):
+        """
+        Constructor for the Missiles class.
+        """
+        self.draw = Draw()
+        pass
+
+
     def get_distance(x1: int, y1: int, x2: int , y2: int) -> int:
         """
         Calculate the distance between two coordinates.
@@ -103,7 +111,7 @@ class Missiles():
             
         Draw.draw_char(STRIKE_X, STRIKE_Y-1, '🌞')
 
-    def ICBM_bresenham(start: tuple, strike: tuple, chemtrail=True, speed=0.03):
+    def ICBM_bresenham(self, start: tuple, strike: tuple, chemtrail=True, speed=0.03) -> list:
         """
         Launch a missile from start to strike using the Bresenham algorithm.
 
@@ -118,12 +126,12 @@ class Missiles():
         """
         chemtrail_colour = "WHITE"
         chemtrail_icon = "*"
-        line = Draw.get_line(start, strike)
+        line = self.draw.get_line(start, strike)
         for xy in line:
-            Draw.draw_char(xy[0], xy[1], chemtrail_icon, COLOUR=chemtrail_colour)
+            self.draw.draw_char(xy[0], xy[1], chemtrail_icon, COLOUR=chemtrail_colour)
             time.sleep(speed)
             if xy == strike:
-                fallout = Draw.draw_fallout(strike, 2, speed/2, "purple", "*")
+                fallout = self.draw.draw_fallout(strike, 2, speed/2, "purple", "*")
                 break
 
         return fallout

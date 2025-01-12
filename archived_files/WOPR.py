@@ -7,7 +7,7 @@ from random import randint, choice
 import bext
 import pyinputplus
 import sys
-import a_star
+import archived_files.a_star as a_star
 
 # BEXT REQUIREMENTS, for printing to the screen
 WIDTH, HEIGHT = bext.size()

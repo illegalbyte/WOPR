@@ -5,28 +5,34 @@ import time
 import math
 from constants import *
 from map import Map
+from renderer import Renderer
 
-class Draw():
+class Draw(Renderer):
 	"""
-	Class containing functions for drawing on the game map.
+	A class for rendering visual elements in a game map, including targets, fallout effects, circles, lines, and bases.
+	Methods:
+		draw_targets: Places X marks on target locations aka silos
+		draw_fallout_old: Creates an expanding radiation circle effect (legacy method)
+		draw_fallout: Draws fallout around a target location 
+		draw_circle: Creates a hollow circle at specified coordinates
+		get_line: Calculates points for drawing a line between two coordinates
+		draw_line: Renders a line between two points
+		player_list: Displays lists of allies and enemies
+		clear_lines: Erases content from specified line range
+		clear_console: Clears the console area
+		clear_screen: Erases entire screen
+		clear_to_edge: Clears content from x position to screen edge
+		get_original_map_character: Retrieves original character from map at position
+		ocean: Draws ocean effect between points
+		draw_bases: Places base markers on map
+		_get_base_colour: Determines color for base markers
+		base_message: Shows temporary message at a base location
 	"""
+ 
+	def __init__(self):
+		super().__init__()
 
-	def draw_char(X, Y, CHAR: str, COLOUR='RED'):
-		"""
-		Draw a character at a specific location.
-
-		Args:
-			X (int): The x-coordinate.
-			Y (int): The y-coordinate.
-			CHAR (str): The character to be drawn.
-			COLOUR (str): The color of the character.
-		"""
-		bext.goto(round(X), round(Y))
-		bext.fg(COLOUR)
-		print(f'{CHAR}', end='')
-		sys.stdout.flush()
-
-	def draw_targets(regions: dict):
+	def draw_targets(self, regions: dict):
 		"""
 		Draw targets for each region.
 
@@ -36,9 +42,9 @@ class Draw():
 		for region in regions.values():
 			for country, target in region.items():
 				x, y = target
-				Draw.draw_char(x, y, r'{X}', COLOUR='WHITE')
+				self.draw_char(x, y, r'{X}', COLOUR='WHITE')
 	
-	def draw_fallout_old(STRIKE_X, STRIKE_Y, RADIUS=2, SPEED=0.03, COLOUR="PURPLE", CHAR="X"):
+	def draw_fallout_old(self, STRIKE_X, STRIKE_Y, RADIUS=2, SPEED=0.03, COLOUR="PURPLE", CHAR="X"):
 		"""
 		Draw radiation circle.
 
@@ -62,12 +68,13 @@ class Draw():
 					continue
 				if y > HEIGHT:
 					continue
-				Draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
+				self.draw_char(x, y, CHAR, COLOUR=COLOUR)
 				time.sleep(SPEED)
 				theta += step
 			RADIUS -=1
 
-	def draw_fallout(target: tuple, RADIUS=2, SPEED=0.03, COLOUR="Green", CHAR="X"):
+
+	def draw_fallout(self, target: tuple, RADIUS=2, SPEED=0.05, COLOUR="Green", CHAR="X"):
 		"""
 		Draw fallout around a target.
 
@@ -84,16 +91,16 @@ class Draw():
 		circles_drawn = 0
 		fallout_coords = []
 		while circles_drawn < RADIUS+1:
-			coords = Draw.draw_circle(target[0], target[1], circles_drawn, COLOUR="PURPLE", erase_map_tiles=True, radius_modifier=1)
+			coords = self.draw_circle(target[0], target[1], circles_drawn, COLOUR="PURPLE", erase_map_tiles=True, radius_modifier=1)
 			for x, y in coords:
-				Draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
-				time.sleep(0.4)
+				self.draw_char(x, y, CHAR, COLOUR=COLOUR)
+				time.sleep(SPEED)
 			fallout_coords.extend(coords)
 			circles_drawn += 1
 
 		return fallout_coords
 
-	def draw_circle(X, Y, RADIUS, COLOUR='RED', CHAR="X", erase_map_tiles=False, radius_modifier=2, visible=True) -> list:
+	def draw_circle(self, X, Y, RADIUS, COLOUR='RED', CHAR="X", erase_map_tiles=False, radius_modifier=2, visible=True) -> list:
 		"""
 		Draw a hollow circle around a specific location.
 
@@ -123,21 +130,21 @@ class Draw():
 			if y > 45:
 				theta += step
 				continue
-			if Draw.get_original_map_character(x, y) == ' ':
+			if self.get_original_map_character(x, y) == ' ':
 				if visible:
-					Draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
+					self.draw_char(x, y, CHAR, COLOUR=COLOUR)
 				if (round(x), round(y)) not in circle:
 					circle.append((round(x), round(y)))	
 			elif erase_map_tiles:
 				if visible:
-					Draw.draw_char(x, y, CHAR, COLOUR=COLOUR)
+					self.draw_char(x, y, CHAR, COLOUR=COLOUR)
 				if (round(x), round(y)) not in circle:
 					circle.append((round(x), round(y)))	
 			theta += step
 
 		return circle
 
-	def get_line(start: tuple, end: tuple) -> list:
+	def get_line(self, start: tuple, end: tuple) -> list:
 		"""
 		Generate a list of points forming a line between two coordinates.
 
@@ -185,7 +192,7 @@ class Draw():
 			points.reverse()
 		return points
 
-	def draw_line(x1, y1, x2, y2, COLOUR='RED', ocean_only=True) -> list:
+	def draw_line(self, x1, y1, x2, y2, COLOUR='RED', ocean_only=True) -> list:
 		"""
 		Draw a line between two points.
 
@@ -200,7 +207,7 @@ class Draw():
 		Returns:
 			list: List of coordinates of the line.
 		"""
-		points = Draw.get_line((round(x1), round(y1)), (round(x2), round(y2)))
+		points = self.get_line((round(x1), round(y1)), (round(x2), round(y2)))
 		valid_points = []
 		for point in points:
 			x, y = point
@@ -208,57 +215,13 @@ class Draw():
 				continue
 			if ocean_only and not Map.check_for_ocean(x,y):
 				continue
-			Draw.draw_char(x, y, 'X', COLOUR=COLOUR)
+			self.draw_char(x, y, 'X', COLOUR=COLOUR)
 			valid_points.append((x,y))
 		return valid_points
 
-	def ask_for_coordinates() -> tuple:
-		"""
-		Ask for coordinates from the user.
 
-		Returns:
-			tuple: The coordinates entered by the user.
-		"""
-		Draw.clear_console()
-		bext.fg('RED')
-		x_coord = "0"
-		while not x_coord.isalpha() or len(x_coord) != 1:
-			bext.goto(0, 50)
-			x_coord = pyinputplus.inputStr('ENTER X LOCTAION [A,B,C...] > ')
-			Draw.clear_console()
 
-		x_coord_letter = x_coord
-		x_coord = Map.convert_x_coord(x_coord)
-		Draw.console(f"TARGET X AXIS: {(x_coord_letter.upper())} / {x_coord}")
-		bext.fg('RED')
-		y_coord = pyinputplus.inputInt('ENTER Y LOCTAION [1,2,3...] > ', min=0, max=45)
-		Draw.clear_lines(50, 56)
-		
-
-		return (x_coord, y_coord)
-
-	def console(input):
-		"""
-		Write to the bottom console.
-
-		Args:
-			input (str): The input to be written to the console.
-		"""
-		bext.fg('RED')
-		if len(console_prompts) > 9:
-			console_prompts.pop(0)
-		console_prompts.append(input)
-		Draw.clear_lines(50, 60)
-		for i, output in enumerate(console_prompts):
-			bext.goto(2, 50+i)
-			if type(output) == str:
-				print(f">> {output}")
-			else:
-				output
-		bext.fg('reset')
-		sys.stdout.flush()
-
-	def player_list(allies:list, enemies:list, player:str):
+	def player_list(self, allies:list, enemies:list, player:str):
 		"""
 		Show a list of enemies and allies, as well as the player's country.
 
@@ -267,7 +230,7 @@ class Draw():
 			enemies (list): List of enemies.
 			player (str): The player's country.
 		"""
-		Draw.clear_to_edge(2, 30, 180)
+		self.clear_to_edge(2, 30, 180)
 
 		disabled_colour = 'yellow'
 
@@ -308,7 +271,7 @@ class Draw():
 		bext.fg('reset')
 		bext.bg('reset')
 
-	def clear_lines(Y_START, Y_END):
+	def clear_lines(self, Y_START, Y_END):
 		"""
 		Clear a range of lines.
 
@@ -321,22 +284,22 @@ class Draw():
 				bext.goto(x, y)
 				print(' ', end='')
 
-	def clear_console():
+	def clear_console(self):
 		"""
 		Clear the console.
 		"""
-		Draw.clear_lines(48, HEIGHT)
+		self.clear_lines(48, HEIGHT)
 		bext.fg('reset')
 		bext.bg('reset')
 		bext.goto(0, 48)
 	
-	def clear_screen():
+	def clear_screen(self):
 		"""
 		Clear the entire screen.
 		"""
-		Draw.clear_to_edge(0, bext.height(), 0)
+		self.clear_to_edge(0, bext.height(), 0)
 
-	def clear_to_edge(y_start, y_end, x_start):
+	def clear_to_edge(self, y_start, y_end, x_start):
 		"""
 		Clear lines from x to the right end of the screen.
 
@@ -350,7 +313,7 @@ class Draw():
 				bext.goto(x, y)
 				print(' ', end='')
 
-	def get_original_map_character(x,y):
+	def get_original_map_character(self, x,y):
 		"""
 		Get the original character from the map.
 
@@ -366,7 +329,7 @@ class Draw():
 
 		return characters[round(x)] 
 
-	def ocean(x1, x2, y):
+	def ocean(self, x1, x2, y):
 		"""
 		Draw an ocean between two points.
 
@@ -380,3 +343,43 @@ class Draw():
 			bext.bg('BLUE')
 			bext.fg('white')
 			print('-', end='')
+
+
+	def draw_bases(self, countries: dict, player_country: str, enemies: list, allies: list):
+		"""Draw bases on the map with appropriate colors"""
+		for country in countries:
+			x, y = countries[country]['location']
+			colour = self._get_base_colour(country, countries[country]['status'], 
+										 player_country, enemies, allies)
+			self.draw_char(x, y, '@', COLOUR=colour)
+			
+	def _get_base_colour(self, country: str, status: bool, 
+						player_country: str, enemies: list, allies: list) -> str:
+		"""Determine color for a base based on its status"""
+		if not status:
+			return 'BLUE'
+		elif country == player_country:
+			return 'YELLOW'
+		elif country in enemies:
+			return 'RED'
+		elif country in allies:
+			return 'WHITE'
+		return 'RESET'
+
+
+	def base_message(self, text: str, country: str):
+		"""
+		Print a message at a specific country's silo location.
+
+		Args:
+			text (str): The message to be printed.
+			country (str): The country where the message will be printed.
+		"""
+		bext.goto(countries[country]['location'][0],
+				countries[country]['location'][1])
+		bext.bg('RED')
+		bext.fg('BLACK')
+		print(text)
+		bext.bg('reset')
+		bext.fg('reset')
+		time.sleep(10)

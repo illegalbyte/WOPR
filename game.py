@@ -8,31 +8,42 @@ from map import Map
 from utility import Utility
 from random import randint, choice
 from constants import *
+from console import Console
 
 class ClassicMode:
     def __init__(self):
         self.unassigned_countries = []
+        self.countries = countries
         self.all_countries = []
         self.player_country = ""
         self.allies = []
         self.enemies = []
         self.original_allies = []
         self.original_enemies = []
+        self.draw = Draw()
+        self.missiles = Missiles()
+        self.console = Console(self.draw)
+        
 
     def run(self):
+        #initialise classes
+        game_map = Map()
+        
         bext.clear()
-        Map.print_map("green", REFRESH_RATE)
+        game_map.print_map("green", SPEED=REFRESH_RATE)
         self.unassigned_countries = []
-
+        # Set all countries to active and add them to the unassigned countries list
         for country in countries:
             countries[country]['status'] = True
             self.unassigned_countries.append(country)
-
+        # Copy the unassigned countries list to the all countries list
         self.all_countries = self.unassigned_countries.copy()
-        # Ask the player to choose a country
-        bext.goto(0, 48)
-        self.player_country = pyinputplus.inputMenu(
-            self.unassigned_countries, "CHOOSE A COUNTRY:\n", numbered=True)
+        # Ask the player to choose a country 
+        # TODO: move this manual bext commands to a console manager class which manages the terminal at lines 0,48 etc. 
+        self.player_country = self.console.get_input(
+            "CHOOSE A COUNTRY:",
+            self.unassigned_countries
+        )
 
         # Remove the player's country from the unassigned countries list
         self.unassigned_countries.remove(self.player_country)
@@ -41,57 +52,44 @@ class ClassicMode:
         self.enemies = []
 
         ally_limit = randint(2, 5)
-        enemies_limit = len(self.all_countries) - ally_limit
-
+        # Assign allies and enemies to the player
         for country in self.unassigned_countries:
             if len(self.allies) < ally_limit:
                 self.allies.append(country)
             else:
                 self.enemies.append(country)
-
+        # Copy the allies and enemies lists to the original allies and enemies lists
         self.original_allies = self.allies.copy()
         self.original_enemies = self.enemies.copy()
-
-        Draw.player_list(self.allies, self.enemies, self.player_country)
-
+        # Draw the player list
+        self.draw.player_list(self.allies, self.enemies, self.player_country)
+        
         turn = 1
+        # Main game loop 
         while len(self.enemies) != 0 and (countries[self.player_country]['status'] == True):
-            self.draw_bases()
-            Draw.player_list(self.original_allies, self.original_enemies, self.player_country)
+            self.draw.draw_bases(self.countries, self.player_country, self.enemies, self.allies)
+            self.draw.player_list(self.original_allies, self.original_enemies, self.player_country)
             if turn % 2 == 0 and countries[self.player_country]['status'] == True:
                 self.automove()
             else:
                 self.playermove()
             turn += 1
-            Draw.player_list(self.original_allies, self.original_enemies, self.player_country)
+            self.draw.player_list(self.original_allies, self.original_enemies, self.player_country)
 
         if countries[self.player_country]['status'] == False:
-            self.base_message(f'YOU LOST IN {turn} TURNS, RESTARTING IN 10s', self.player_country)
+            self.draw.base_message(f'YOU LOST IN {turn} TURNS, RESTARTING IN 10s', self.player_country)
         else:
-            self.base_message(f'YOU WON IN {turn} TURNS, RESTARTING IN 10s', self.player_country)
+            self.draw.base_message(f'YOU WON IN {turn} TURNS, RESTARTING IN 10s', self.player_country)
 
-    def draw_bases(self):
-        for country in countries:
-            if country == self.player_country:
-                bext.fg('yellow')
-            elif country in self.enemies:
-                bext.fg('red')
-            elif country in self.allies:
-                bext.fg('white')
-            elif countries[country]['status'] == False:
-                bext.fg('blue')
-            bext.goto(countries[country]['location'][0],
-                      countries[country]['location'][1])
-            print('@')
 
     def playermove(self):
         """
-        Ask the player what countries it should target.
+        defines the player's move
         """
-        Draw.clear_console()
+        self.console.clear_console()
 
         if len(self.enemies) > 1:
-            target = pyinputplus.inputMenu(self.enemies, "CHOSE A COUNTRY TO TARGET:\n", lettered=True)
+            target = self.console.get_input("CHOSE A COUNTRY TO TARGET:", self.enemies)
         else:
             target = self.enemies[0]
 
@@ -100,8 +98,8 @@ class ClassicMode:
         target_coords = (countries[target]['location'][0],
                          countries[target]['location'][1])
 
-        Missiles.ICBM_bresenham(start_coords, target_coords)
-        Draw.draw_fallout(target_coords, 2, REFRESH_RATE, "purple", "*")
+        self.missiles.ICBM_bresenham(start_coords, target_coords)
+        self.draw.draw_fallout(target_coords, 2, REFRESH_RATE, "purple", "*")
 
         self.enemies.remove(target)
         countries[target]['status'] = False
@@ -119,7 +117,7 @@ class ClassicMode:
         elif start in self.allies:
             possible_targets = self.enemies
         target = choice(possible_targets)
-
+        self.console.write(f"{start} FIRES AT {target}")
         start_x = countries[start]['location'][0]
         start_y = countries[start]['location'][1]
         strike_x = countries[target]['location'][0]
@@ -134,26 +132,11 @@ class ClassicMode:
         elif target == self.player_country:
             countries[target]['status'] = False
 
-        Missiles.ICBM_bresenham((start_x, start_y), (strike_x, strike_y))
-        Draw.draw_fallout((strike_x, strike_y), 2, REFRESH_RATE, "purple", "*")
-        self.draw_bases()
+        self.missiles.ICBM_bresenham((start_x, start_y), (strike_x, strike_y))
+        self.draw.draw_fallout((strike_x, strike_y), 2, REFRESH_RATE, "purple", "*")
+        self.draw.draw_bases(self.countries, self.player_country, self.enemies, self.allies)
+        
 
-    def base_message(self, text: str, country: str):
-        """
-        Print a message at a specific country's silo location.
-
-        Args:
-            text (str): The message to be printed.
-            country (str): The country where the message will be printed.
-        """
-        bext.goto(countries[country]['location'][0],
-                  countries[country]['location'][1])
-        bext.bg('RED')
-        bext.fg('BLACK')
-        print(text)
-        bext.bg('reset')
-        bext.fg('reset')
-        time.sleep(10)
 
 
 class Submarine:
@@ -475,7 +458,8 @@ def main():
         print(f"TERMINAL WIDTH MUST BE > 170 characters wide and > 60 characters tall\nYour terminal is only: {WIDTH}px wide by {HEIGHT}px tall")
 
     while True:
-        Draw.clear_console()
+        drawer = Draw()
+        drawer.clear_console()
         classic_mode = ClassicMode()
         classic_mode.run()
         sys.exit()

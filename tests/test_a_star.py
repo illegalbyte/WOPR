@@ -1,5 +1,5 @@
 import unittest
-from a_star import getNextMoves, getShortestPath
+from archived_files.a_star import getNextMoves, getShortestPath
 
 class TestAStar(unittest.TestCase):
 

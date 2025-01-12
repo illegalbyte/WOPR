@@ -12,7 +12,7 @@ import pyinputplus
 import sys
 import time
 import math
-import a_star
+import archived_files.a_star as a_star
 import game
 
 
