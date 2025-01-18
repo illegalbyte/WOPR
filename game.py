@@ -22,7 +22,8 @@ class ClassicMode:
         self.original_enemies = []
         self.draw = Draw()
         self.missiles = Missiles()
-        self.console = Console(self.draw)
+        self.map = Map()
+        self.console = Console(self.draw, self.map)
         
 
     def run(self):
@@ -39,9 +40,8 @@ class ClassicMode:
         # Copy the unassigned countries list to the all countries list
         self.all_countries = self.unassigned_countries.copy()
         # Ask the player to choose a country 
-        # TODO: move this manual bext commands to a console manager class which manages the terminal at lines 0,48 etc. 
-        self.player_country = self.console.get_input(
-            "CHOOSE A COUNTRY:",
+        self.player_country = self.console.get_input_choice(
+            "CHOOSE A COUNTRY:\n",
             self.unassigned_countries
         )
 
@@ -89,7 +89,7 @@ class ClassicMode:
         self.console.clear_console()
 
         if len(self.enemies) > 1:
-            target = self.console.get_input("CHOSE A COUNTRY TO TARGET:", self.enemies)
+            target = self.console.get_input_choice("CHOOSE A COUNTRY TO TARGET:\n", self.enemies)
         else:
             target = self.enemies[0]
 
@@ -117,7 +117,7 @@ class ClassicMode:
         elif start in self.allies:
             possible_targets = self.enemies
         target = choice(possible_targets)
-        self.console.write(f"{start} FIRES AT {target}")
+        self.console.console_log(f"{start} FIRES AT {target}")
         start_x = countries[start]['location'][0]
         start_y = countries[start]['location'][1]
         strike_x = countries[target]['location'][0]
@@ -136,7 +136,6 @@ class ClassicMode:
         self.draw.draw_fallout((strike_x, strike_y), 2, REFRESH_RATE, "purple", "*")
         self.draw.draw_bases(self.countries, self.player_country, self.enemies, self.allies)
         
-
 
 
 class Submarine:

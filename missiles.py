@@ -14,8 +14,6 @@ class Missiles():
         Constructor for the Missiles class.
         """
         self.draw = Draw()
-        pass
-
 
     def get_distance(x1: int, y1: int, x2: int , y2: int) -> int:
         """
